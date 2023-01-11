@@ -50,7 +50,10 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-
+static Pinout pinout;
+static Uart uart {huart2};
+static Adc adc {hadc1};
+static Application application {pinout, uart, adc};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -100,11 +103,7 @@ int main(void)
   MX_ADC1_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-  Pinout pinout;
-  Uart uart {huart2};
-  Adc adc {hadc1};
-  Application application {pinout, uart, adc};
-  application.loop();
+  //application.loop();
   //Uart<huart2> uart;  broken
   //std::array<uint8_t, 3> msg {'G', 'O', 'D'};
   //std::array<double, 4> msg1 {1.0,2.5,3.4,4.3};
@@ -356,10 +355,22 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LD4_GPIO_Port, &GPIO_InitStruct);
 
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
+
 }
 
 /* USER CODE BEGIN 4 */
-
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+{
+  if (GPIO_Pin == B1_Pin)
+  {
+    /* Toggle LED2 */
+    pinout.m_onboardLed.toggle();
+    application.loop();
+  }
+}
 /* USER CODE END 4 */
 
 /**

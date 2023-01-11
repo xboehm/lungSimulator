@@ -7,7 +7,8 @@
 #include <array>
 #include <charconv>
 
-struct Application{
+class Application{
+public:
 	Application(Pinout pinout, Uart uart, Adc adc);
 	void loop();
 private:
