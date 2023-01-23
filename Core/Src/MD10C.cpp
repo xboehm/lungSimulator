@@ -26,3 +26,13 @@ void MD10C::startPWM(bool started){
 			m_pwmStarted = true;
 	}
 }
+
+void MD10C::selfTest(){
+	forward();
+	 HAL_Delay(600);
+	 stop();
+	 HAL_Delay(1000);
+	 reverse();
+	 HAL_Delay(600);
+	 stop();
+}

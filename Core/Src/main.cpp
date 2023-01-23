@@ -110,13 +110,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  motor.forward();
-  HAL_Delay(600);
-  motor.stop();
-  HAL_Delay(1000);
-  motor.reverse();
-  HAL_Delay(600);
-  motor.stop();
+
   //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   //TIM1->CCR1 = 555;
   //Uart<huart2> uart;  broken
@@ -124,7 +118,7 @@ int main(void)
   //std::array<double, 4> msg1 {1.0,2.5,3.4,4.3};
   //uart.send(std::as_bytes(std::span{msg}));
   /* USER CODE END 2 */
-
+motor.selfTest();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)

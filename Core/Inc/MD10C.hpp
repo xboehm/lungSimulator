@@ -8,6 +8,7 @@ public:
 	void forward();
 	void reverse();
 	void stop();
+	void selfTest();
 
 private:
 	GpioPin& m_dir;
