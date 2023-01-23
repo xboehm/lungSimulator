@@ -111,10 +111,12 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   motor.forward();
-  HAL_Delay(2000);
+  HAL_Delay(600);
   motor.stop();
-  HAL_Delay(2000);
+  HAL_Delay(1000);
   motor.reverse();
+  HAL_Delay(600);
+  motor.stop();
   //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
   //TIM1->CCR1 = 555;
   //Uart<huart2> uart;  broken
@@ -289,7 +291,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 250;
+  sConfigOC.Pulse = 400;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
