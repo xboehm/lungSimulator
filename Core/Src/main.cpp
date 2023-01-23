@@ -24,6 +24,8 @@
 #include "Application.hpp"
 #include "Pinout.hpp"
 #include "Uart.hpp"
+#include"PWM.hpp"
+#include "MD10C.hpp"
 #include <array>
 #include <span>
 /* USER CODE END Includes */
@@ -54,6 +56,8 @@ UART_HandleTypeDef huart2;
 Pinout pinout;
 Uart uart {huart2};
 Adc adc {hadc1};
+PWM pwm1 {htim1, TIM1, TIM_CHANNEL_1};
+MD10C motor {pinout.m_dir, pwm1};
 Application application {pinout, uart, adc};
 /* USER CODE END PV */
 
@@ -106,14 +110,15 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
-  HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
-  pinout.m_dir.set();
+
+  //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
+  //TIM1->CCR1 = 555;
   //Uart<huart2> uart;  broken
   //std::array<uint8_t, 3> msg {'G', 'O', 'D'};
   //std::array<double, 4> msg1 {1.0,2.5,3.4,4.3};
   //uart.send(std::as_bytes(std::span{msg}));
   /* USER CODE END 2 */
-
+motor.selfTest();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)
@@ -280,7 +285,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 250;
+  sConfigOC.Pulse = 400;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
