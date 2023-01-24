@@ -6,6 +6,12 @@ Application::Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
 {
 }
 
+Application& Application::getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
+		TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel){
+	static Application m_instance {uart, adc, TIMhandle, timer, channel};
+	return m_instance;
+}
+
 void Application::loop(){
 	/*readBuffer buffer {};
 	m_adc.readSingleLoop(2U, buffer);

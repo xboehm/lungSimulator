@@ -8,11 +8,17 @@
 #include <array>
 #include <charconv>
 
-struct Application{
-	Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-							TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+class Application{
+public:
+	static Application& getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
+			TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
+
 private:
+	Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
+								TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+
 	Pinout m_pinout;
 	Uart m_uart;
 	Adc m_adc;
