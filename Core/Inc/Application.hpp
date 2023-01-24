@@ -11,13 +11,13 @@
 class Application{
 public:
 	static Application& getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-			TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+			TIM_HandleTypeDef* TIMhandle);
 	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
 
 private:
 	Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-								TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+								TIM_HandleTypeDef* TIMhandle);
 
 	Pinout m_pinout;
 	Uart m_uart;

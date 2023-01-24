@@ -5,9 +5,11 @@
 
 class Pinout{
 public:
-	Pinout();
-
 	//Define all wanted GPIO pins for specific project below
 	GpioPin m_onboardLed;
 	GpioPin m_dir;
+
+private:
+	friend class Application;
+	Pinout();
 };

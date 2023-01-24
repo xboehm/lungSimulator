@@ -1,7 +1,7 @@
 #include "MD10C.hpp"
 
-MD10C::MD10C(GpioPin& dir, TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel)
-	: m_dir(dir), m_pwm (TIMhandle, timer, channel)
+MD10C::MD10C(GpioPin& dir, TIM_HandleTypeDef* TIMhandle)
+	: m_dir(dir), m_pwm (TIMhandle, TIM1, TIM_CHANNEL_1)
 {
 }
 

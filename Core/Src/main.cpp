@@ -60,7 +60,7 @@ Adc adc {hadc1};
 PWM pwm1 {htim1, TIM1, TIM_CHANNEL_1};
 MD10C motor {pinout.m_dir, pwm1};
 */
-Application&  application {Application::getInstance(&huart2, &hadc1, &htim1, TIM1, TIM_CHANNEL_1)};
+Application&  application {Application::getInstance(&huart2, &hadc1, &htim1)};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/

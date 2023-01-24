@@ -4,7 +4,7 @@
 
 class MD10C{
 public:
-	MD10C(GpioPin& dir, TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel);
+	MD10C(GpioPin& dir, TIM_HandleTypeDef* TIMhandle);
 	void forward();
 	void reverse();
 	void stop();

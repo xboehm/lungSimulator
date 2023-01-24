@@ -1,14 +1,15 @@
 #include "Application.hpp"
 
 Application::Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-		TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel)
-	: m_uart (uart), m_adc (adc), m_motor (m_pinout.m_dir, TIMhandle, timer, channel)
+		TIM_HandleTypeDef* TIMhandle)
+	:m_uart (uart), m_adc (adc), m_motor (m_pinout.m_dir, TIMhandle)
 {
 }
 
 Application& Application::getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-		TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel){
-	static Application m_instance {uart, adc, TIMhandle, timer, channel};
+		TIM_HandleTypeDef* TIMhandle)
+{
+	static Application m_instance {uart, adc, TIMhandle};
 	return m_instance;
 }
 
