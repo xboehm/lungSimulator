@@ -53,12 +53,14 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+/*
 Pinout pinout;
 Uart uart {huart2};
 Adc adc {hadc1};
 PWM pwm1 {htim1, TIM1, TIM_CHANNEL_1};
 MD10C motor {pinout.m_dir, pwm1};
-Application application {pinout, uart, adc};
+*/
+Application application {&huart2, &hadc1, &htim1, TIM1, TIM_CHANNEL_1};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -118,7 +120,6 @@ int main(void)
   //std::array<double, 4> msg1 {1.0,2.5,3.4,4.3};
   //uart.send(std::as_bytes(std::span{msg}));
   /* USER CODE END 2 */
-motor.selfTest();
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1)

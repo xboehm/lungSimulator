@@ -1,12 +1,13 @@
 #include "Application.hpp"
 
-Application::Application(Pinout pinout, Uart uart, Adc adc)
-	: m_pinout (pinout), m_uart (uart), m_adc (adc)
+Application::Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
+		TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel)
+	: m_uart (uart), m_adc (adc), m_motor (m_pinout.m_dir, TIMhandle, timer, channel)
 {
 }
 
 void Application::loop(){
-	readBuffer buffer {};
+	/*readBuffer buffer {};
 	m_adc.readSingleLoop(2U, buffer);
 	std::array<char, 8> test {"Start\r\n"};
 	m_uart.send(std::as_bytes(std::span{test}));
@@ -17,6 +18,6 @@ void Application::loop(){
 		output.at(5) = '\n';
 		m_uart.send(std::as_bytes(std::span{output}));
 		output.fill(0);
-	}
-
+	}*/
+	m_motor.selfTest();
 }

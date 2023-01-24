@@ -1,8 +1,9 @@
 #include "MD10C.hpp"
 
-MD10C::MD10C(GpioPin& dir, PWM& pwm)
-	: m_dir(dir), m_pwm(pwm)
-{}
+MD10C::MD10C(GpioPin& dir, TIM_HandleTypeDef* TIMhandle, TIM_TypeDef* timer, uint32_t channel)
+	: m_dir(dir), m_pwm (TIMhandle, timer, channel)
+{
+}
 
 void MD10C::forward(){
 	startPWM(m_pwmStarted);
