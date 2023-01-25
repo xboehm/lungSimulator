@@ -1,8 +1,8 @@
 #include "Application.hpp"
 
 Application::Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-		TIM_HandleTypeDef* TIMhandle)
-	:m_uart (uart), m_adc (adc), m_motor (m_pinout.m_dir, TIMhandle)
+													TIM_HandleTypeDef* TIMhandle)
+	:m_pinout {}, m_uart {uart}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}
 {
 }
 

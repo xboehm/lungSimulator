@@ -1,7 +1,7 @@
 #include "PWM.hpp"
 
 PWM::PWM(TIM_HandleTypeDef* handle, TIM_TypeDef* timer, uint32_t channel)
-	: m_handle(handle), m_timer(timer), m_channel(channel)
+	: m_handle {handle}, m_timer {timer}, m_channel {channel}
 {}
 
 void PWM::start(){

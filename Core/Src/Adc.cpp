@@ -1,7 +1,7 @@
 #include "Adc.hpp"
 
 Adc::Adc(ADC_HandleTypeDef* handle)
-	: m_handle (handle)
+	: m_handle {handle}
 {
 }
 

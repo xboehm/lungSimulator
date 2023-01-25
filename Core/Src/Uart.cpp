@@ -1,7 +1,7 @@
 #include "Uart.hpp"
 
 Uart::Uart(UART_HandleTypeDef* handle)
-	: m_handle (handle)
+	: m_handle {handle}
 {
 }
 

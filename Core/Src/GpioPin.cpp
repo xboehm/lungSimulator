@@ -2,7 +2,7 @@
 #include <memory>
 
 GpioPin::GpioPin(GPIO_TypeDef* port, uint16_t pin)
-	: m_GpioPort (port), m_GpioPin(pin)
+	: m_GpioPort {port}, m_GpioPin{pin}
 {
 }
 

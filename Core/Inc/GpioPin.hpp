@@ -14,5 +14,5 @@ public:
 
 private:
 	GPIO_TypeDef* m_GpioPort;
-	uint16_t m_GpioPin {};
+	uint16_t m_GpioPin;
 };
