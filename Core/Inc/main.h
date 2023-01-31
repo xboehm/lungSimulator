@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define SMPS_PG_GPIO_Port GPIOA
 #define LD4_Pin GPIO_PIN_13
 #define LD4_GPIO_Port GPIOB
+#define PWM_Pin GPIO_PIN_8
+#define PWM_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14

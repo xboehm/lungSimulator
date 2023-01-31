@@ -5,10 +5,15 @@ Adc::Adc(ADC_HandleTypeDef* handle)
 {
 }
 
-uint32_t Adc::readSingle(){
+uint32_t Adc::readSinglePoll(){
 	HAL_ADC_Start(m_handle);
-	HAL_ADC_PollForConversion(m_handle, HAL_MAX_DELAY);
-	return HAL_ADC_GetValue(m_handle);
+	if(HAL_ADC_PollForConversion(m_handle, 10) == HAL_OK) {
+		return HAL_ADC_GetValue(m_handle);
+	}
+	else{
+		//Error handling
+		return 0xFFFFFFFF;
+	}
 }
 
 //iterator, for each loop, for_each algorithm with lambda? what offers the most performance?

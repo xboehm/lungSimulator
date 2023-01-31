@@ -26,5 +26,10 @@ void Application::loop(){
 		m_uart.send(std::as_bytes(std::span{output}));
 		output.fill(0);
 	}*/
-	m_motor.selfTest();
+	//m_motor.selfTest();
+	uint32_t adcRaw {0};
+
+	while(1) {
+		adcRaw = m_adc.readSinglePoll();
+	}
 }

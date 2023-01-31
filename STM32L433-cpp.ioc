@@ -1,11 +1,15 @@
 #MicroXplorer Configuration settings - do not modify
 ADC1.Channel-2\#ChannelRegularConversion=ADC_CHANNEL_2
 ADC1.CommonPathInternal=null|null|null|null
-ADC1.IPParameters=Rank-2\#ChannelRegularConversion,master,Channel-2\#ChannelRegularConversion,SamplingTime-2\#ChannelRegularConversion,OffsetNumber-2\#ChannelRegularConversion,NbrOfConversionFlag,CommonPathInternal
+ADC1.IPParameters=Rank-2\#ChannelRegularConversion,master,Channel-2\#ChannelRegularConversion,SamplingTime-2\#ChannelRegularConversion,OffsetNumber-2\#ChannelRegularConversion,NbrOfConversionFlag,OversamplingMode,RightBitShift,Ratio,NbrOfConversion,CommonPathInternal
+ADC1.NbrOfConversion=1
 ADC1.NbrOfConversionFlag=1
 ADC1.OffsetNumber-2\#ChannelRegularConversion=ADC_OFFSET_NONE
+ADC1.OversamplingMode=ENABLE
 ADC1.Rank-2\#ChannelRegularConversion=1
-ADC1.SamplingTime-2\#ChannelRegularConversion=ADC_SAMPLETIME_24CYCLES_5
+ADC1.Ratio=ADC_OVERSAMPLING_RATIO_4
+ADC1.RightBitShift=ADC_RIGHTBITSHIFT_2
+ADC1.SamplingTime-2\#ChannelRegularConversion=ADC_SAMPLETIME_12CYCLES_5
 ADC1.master=1
 CAD.formats=
 CAD.pinconfig=
@@ -105,6 +109,8 @@ PA6.GPIO_Label=SMPS_PG [ADP5301ACBZ_OUTOK]
 PA6.GPIO_PuPd=GPIO_PULLUP
 PA6.Locked=true
 PA6.Signal=GPIO_Input
+PA8.GPIOParameters=GPIO_Label
+PA8.GPIO_Label=PWM
 PA8.Signal=S_TIM1_CH1
 PB13.GPIOParameters=GPIO_Label
 PB13.GPIO_Label=LD4 [green Led]

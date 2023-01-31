@@ -10,7 +10,7 @@ using readBuffer = std::array<uint32_t, constants::ADCreads>;
 class Adc{
 public:
 	Adc(ADC_HandleTypeDef* handle);
-	uint32_t readSingle();
+	uint32_t readSinglePoll();
 	void readSingleLoop(unsigned int delay, readBuffer& buffer);
 
 private:
