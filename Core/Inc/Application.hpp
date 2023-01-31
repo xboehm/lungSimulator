@@ -15,6 +15,7 @@ public:
 	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
 
+
 private:
 	Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
 								TIM_HandleTypeDef* TIMhandle);
@@ -23,4 +24,11 @@ private:
 	Uart m_uart;
 	Adc m_adc;
 	MD10C m_motor;
+
+	enum class State{
+		init,
+		menu,
+		breathe,
+		stop
+	};
 };

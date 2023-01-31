@@ -26,10 +26,58 @@ void Application::loop(){
 		m_uart.send(std::as_bytes(std::span{output}));
 		output.fill(0);
 	}*/
-	//m_motor.selfTest();
-	uint32_t adcRaw {0};
+
+	State currentGlobalState {State::breathe};
+	uint32_t adcRaw {m_adc.readSinglePoll()};
+
 
 	while(1) {
-		adcRaw = m_adc.readSinglePoll();
+		switch(currentGlobalState){
+			case(State::init):
+				//do initialization
+						/*
+				if(init.done()){
+					//critical section start
+					irq.disable();
+					currentGlobalState = State::menu;
+					irq.enable();
+					//critical section end
+				}
+				*/
+				break;
+
+			case(State::menu):
+					break;
+
+			case(State::breathe):
+				//do regulation
+				m_motor.forward();
+				while(adcRaw > 1200){
+					adcRaw = m_adc.readSinglePoll();
+				}
+				m_motor.reverse();
+				while(adcRaw < 2800){
+					adcRaw = m_adc.readSinglePoll();
+				}
+				break;
+//				if(adcRaw < 2048){
+//					m_motor.reverse();
+//				}
+//				else{
+//					m_motor.forward();
+//				}
+
+			case(State::stop):
+				//wait for system being cleared
+				/*
+				if(releaseButton.pressed() && endschalter.released()){
+					//critical section start
+					irq.disable();
+					currentGlobalState = State::init;
+					irq.enable();
+					//critical section end
+					 */
+				 break;
+		}
 	}
 }
