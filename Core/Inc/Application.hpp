@@ -14,16 +14,14 @@ public:
 			TIM_HandleTypeDef* TIMhandle);
 	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
+	void m_printADCloop(int delay);
+	void m_readADCbuffer();
+	void m_buttonTest();
 
 
 private:
 	Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
 								TIM_HandleTypeDef* TIMhandle);
-
-	Pinout m_pinout;
-	Uart m_uart;
-	Adc m_adc;
-	MD10C m_motor;
 
 	enum class State{
 		init,
@@ -31,4 +29,13 @@ private:
 		breathe,
 		stop
 	};
+
+	Pinout m_pinout;
+	Uart m_uart;
+	Adc m_adc;
+	MD10C m_motor;
+	State m_currentState {State::init};
+
+public:
+	bool m_endFlag {false};
 };
