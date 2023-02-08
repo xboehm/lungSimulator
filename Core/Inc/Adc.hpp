@@ -9,6 +9,8 @@ class Adc{
 public:
 	Adc(ADC_HandleTypeDef* handle);
 	uint32_t readSinglePoll();
+	uint32_t readValue();
+	void startConversionInterrupt();
 	void readSingleLoop(unsigned int delay, std::array<uint32_t, constants::ADCreads>& buffer);
 
 private:

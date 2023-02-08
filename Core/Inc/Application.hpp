@@ -38,4 +38,6 @@ private:
 
 public:
 	bool m_endFlag {false};
+	//uint32_t m_adcRaw {0};
+	bool m_adcComplete {false};
 };

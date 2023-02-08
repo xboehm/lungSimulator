@@ -16,6 +16,14 @@ uint32_t Adc::readSinglePoll(){
 	}
 }
 
+void Adc::startConversionInterrupt() {
+	HAL_ADC_Start_IT(m_handle);
+}
+
+uint32_t Adc::readValue() {
+	return HAL_ADC_GetValue(m_handle);
+}
+
 //iterator, for each loop, for_each algorithm with lambda? what offers the most performance?
 void Adc::readSingleLoop(unsigned int delay, std::array<uint32_t, constants::ADCreads>& buffer){
 	for(auto& value: buffer){

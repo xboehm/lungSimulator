@@ -24,7 +24,7 @@
 #include "Application.hpp"
 #include "Pinout.hpp"
 #include "Uart.hpp"
-#include"PWM.hpp"
+#include "PWM.hpp"
 #include "MD10C.hpp"
 #include <array>
 #include <span>
@@ -53,13 +53,6 @@ TIM_HandleTypeDef htim2;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
-/*
-Pinout pinout;
-Uart uart {huart2};
-Adc adc {hadc1};
-PWM pwm1 {htim1, TIM1, TIM_CHANNEL_1};
-MD10C motor {pinout.m_dir, pwm1};
-*/
 Application&  application {Application::getInstance(&huart2, &hadc1, &htim1)};
 /* USER CODE END PV */
 
@@ -469,6 +462,12 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
 	  application.m_endFlag = true;
 	  //critical section end
   }
+}
+
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+    // Read & Update The ADC Result
+    application.m_adcComplete = true;
 }
 /* USER CODE END 4 */
 

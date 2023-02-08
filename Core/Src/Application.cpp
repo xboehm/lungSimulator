@@ -15,7 +15,6 @@ Application& Application::getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeD
 
 void Application::loop() {
 	uint32_t adcRaw {m_adc.readSinglePoll()};
-
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
@@ -37,17 +36,21 @@ void Application::loop() {
 					break;
 
 			case(State::breathe):
+				m_adc.startConversionInterrupt();
 				if(m_endFlag) {
 					m_currentState = State::stop;
 					break;
 				}
 				//do regulation
-				adcRaw = m_adc.readSinglePoll();
-				if(adcRaw < 1200U){
-					m_motor.forward();
-				}
-				else if(adcRaw > 2800U){
-					m_motor.reverse();
+				if(m_adcComplete) {
+					adcRaw = m_adc.readValue();
+					m_adcComplete = false;
+					if(adcRaw < 1200U){
+						m_motor.forward();
+					}
+					else if(adcRaw > 2800U){
+						m_motor.reverse();
+					}
 				}
 				break;
 
@@ -57,8 +60,6 @@ void Application::loop() {
 				while(1) {
 					m_pinout.m_onboardLed.toggle();
 					//blue button pressed && end switch released
-					//bool button = m_pinout.m_blueButton.read();
-
 					if(m_pinout.m_blueButton.read() && m_pinout.m_endR.read()) {
 						//critical section start
 						//irq.disable();
