@@ -453,21 +453,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
-{
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(GPIO_Pin);
-  if(GPIO_Pin == endR_Pin) {
-	  //critical section start
-	  application.m_endFlag = true;
-	  //critical section end
-  }
-}
+extern "C" {
+	void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin)
+	{
+	  /* Prevent unused argument(s) compilation warning */
+	  UNUSED(GPIO_Pin);
+	  if(GPIO_Pin == endR_Pin) {
+		  //critical section start
+		  application.m_endFlag = true;
+		  //critical section end
+	  }
+	}
 
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-    // Read & Update The ADC Result
-    application.m_adcComplete = true;
+	void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+	{
+		// notify application by setting global flag
+		application.m_adcComplete = true;
+	}
 }
 /* USER CODE END 4 */
 
