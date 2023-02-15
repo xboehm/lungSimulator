@@ -1,26 +1,31 @@
 #include "Application.hpp"
 
-Application::Application(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
+Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
-	:m_pinout {}, m_uart {uart}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}
+	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}
 {
 }
 
-Application& Application::getInstance(UART_HandleTypeDef*  uart, ADC_HandleTypeDef* adc,
-		TIM_HandleTypeDef* TIMhandle)
+Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
+		ADC_HandleTypeDef* adc, TIM_HandleTypeDef* TIMhandle)
 {
-	static Application m_instance {uart, adc, TIMhandle};
+	static Application m_instance {uart, dma, adc, TIMhandle};
 	return m_instance;
 }
 
 void Application::loop() {
+	Cli cli {};
+	bool found {false};
+	uint8_t rxBuf[15] {};
+	char readBuf[15] {};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
 				//do initialization
-				m_motor.reverse();
-				m_currentState = State::breathe;
+				//m_motor.reverse();
+				//m_currentState = State::breathe;
+
 /*
 				if(init.done()){
 					//critical section start
@@ -30,10 +35,55 @@ void Application::loop() {
 					//critical section end
 				}
 */
+				m_currentState = State::menu;
 				break;
 
 			case(State::menu):
-					break;
+			{
+				m_uart.send(std::as_bytes(std::span{"<Enter command> "}));
+				m_uart.receiveToIdleDMA(rxBuf, 15);
+				while(!m_uartComplete){
+					HAL_Delay(10);
+				}
+				//clear isr flag
+				m_uartComplete = false;
+				//copy rxBuf to readBuf to ensure that input string_view views a string that won't change
+				std::copy(rxBuf, rxBuf+std::size(rxBuf), readBuf);
+				std::string_view input {(const char*)readBuf};
+				//'help macro' prints all available commands with their description
+				if(input == "help"){
+					found = true;
+					m_uart.send(std::as_bytes(std::span{"\r\nAvailable commands:\r\n"}));
+					for(auto& cmd: cli.commands) {
+						m_uart.send(std::as_bytes(std::span{"Name: "}));
+						m_uart.send(std::as_bytes(std::span{cmd.name}));
+						m_uart.send(std::as_bytes(std::span{" ("}));
+						m_uart.send(std::as_bytes(std::span{cmd.help}));
+						m_uart.send(std::as_bytes(std::span{")\r\n"}));
+					}
+				}
+				else{
+					//check if the input matches a known command name. If so, execute it
+					for(auto& element: cli.commands){
+						if(input == element.name){
+							found = true;
+							element.execute(this);
+							break;
+						}
+					}
+				}
+				if(!found) {
+					m_uart.send(std::as_bytes(std::span{"Command not found.\r\n"}));
+				}
+				else {
+					found = false;
+				}
+				//clear rxBuf
+				for(std::size_t i{0}; i<std::size(rxBuf); ++i){
+					rxBuf[i] = '\0';
+				}
+				break;
+				}
 
 			case(State::breathe):
 				m_adc.startConversionInterrupt();

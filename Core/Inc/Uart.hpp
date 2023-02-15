@@ -6,11 +6,16 @@
 
 class Uart{
 public:
-	Uart(UART_HandleTypeDef* handle);
+	Uart(UART_HandleTypeDef* handle, DMA_HandleTypeDef* dma);
 
 	void send(std::span<const std::byte> const buf) ;
+	void send1(uint8_t* buf, uint16_t size);
 	void sendChar(char buf);
+	void receive(uint8_t* buf, uint16_t size);
+	void receiveIT(uint8_t* buf, uint16_t size);
+	void receiveToIdleDMA(uint8_t* buf, uint16_t size);
 
 private:
 	UART_HandleTypeDef* m_handle;
+	DMA_HandleTypeDef* m_dma;
 };
