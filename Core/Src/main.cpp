@@ -54,7 +54,8 @@ UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
 
 /* USER CODE BEGIN PV */
-Application&  application {Application::getInstance(&huart2, &hdma_usart2_rx,&hadc1, &htim1)};
+Application&  application {Application::getInstance(&huart2, &hdma_usart2_rx, &hadc1, &htim1)};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -494,6 +495,7 @@ extern "C" {
 
 		if(huart->Instance == USART2) {
 			application.m_uartComplete = true;
+			application.m_uartSize = Size;
 		}
 	}
 }

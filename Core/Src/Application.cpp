@@ -2,9 +2,7 @@
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
-	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}
-{
-}
+	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {}
 
 Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
 		ADC_HandleTypeDef* adc, TIM_HandleTypeDef* TIMhandle)
@@ -13,11 +11,21 @@ Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeD
 	return m_instance;
 }
 
+
+extern Application& application;
 void Application::loop() {
-	Cli cli {};
-	bool found {false};
-	uint8_t rxBuf[15] {};
-	char readBuf[15] {};
+	CmdVersion cmdversion{application};
+	CmdBlink cmdblink{application};
+	CmdBreathe cmdbreathe{application};
+	CmdPause cmdpause{application};
+	std::array commands{
+		static_cast<Command*>(&cmdversion),
+		static_cast<Command*>(&cmdblink),
+		static_cast<Command*>(&cmdbreathe),
+		static_cast<Command*>(&cmdpause),
+	};
+	Cli cli {commands, m_uart, m_uartSize};
+	bool menuFirstEntry {true};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
 	while(1) {
 		switch(m_currentState){
@@ -40,48 +48,24 @@ void Application::loop() {
 
 			case(State::menu):
 			{
-				m_uart.send(std::as_bytes(std::span{"<Enter command> "}));
-				m_uart.receiveToIdleDMA(rxBuf, 15);
+				/*
+				cli.listen();
 				while(!m_uartComplete){
 					HAL_Delay(10);
 				}
-				//clear isr flag
 				m_uartComplete = false;
-				//copy rxBuf to readBuf to ensure that input string_view views a string that won't change
-				std::copy(rxBuf, rxBuf+std::size(rxBuf), readBuf);
-				std::string_view input {(const char*)readBuf};
-				//'help macro' prints all available commands with their description
-				if(input == "help"){
-					found = true;
-					m_uart.send(std::as_bytes(std::span{"\r\nAvailable commands:\r\n"}));
-					for(auto& cmd: cli.commands) {
-						m_uart.send(std::as_bytes(std::span{"Name: "}));
-						m_uart.send(std::as_bytes(std::span{cmd.name}));
-						m_uart.send(std::as_bytes(std::span{" ("}));
-						m_uart.send(std::as_bytes(std::span{cmd.help}));
-						m_uart.send(std::as_bytes(std::span{")\r\n"}));
-					}
+				*/
+				if(menuFirstEntry){
+					cli.listen();
+					menuFirstEntry = false;
 				}
-				else{
-					//check if the input matches a known command name. If so, execute it
-					for(auto& element: cli.commands){
-						if(input == element.name){
-							found = true;
-							element.execute(this);
-							break;
-						}
-					}
+				//new command?
+				if(m_uartComplete) {
+					cli.decode();
+					//clear isr flag
+					m_uartComplete = false;
 				}
-				if(!found) {
-					m_uart.send(std::as_bytes(std::span{"Command not found.\r\n"}));
-				}
-				else {
-					found = false;
-				}
-				//clear rxBuf
-				for(std::size_t i{0}; i<std::size(rxBuf); ++i){
-					rxBuf[i] = '\0';
-				}
+				HAL_Delay(20);
 				break;
 				}
 
@@ -101,6 +85,12 @@ void Application::loop() {
 					else if(adcRaw > 2800U){
 						m_motor.reverse();
 					}
+				}
+				//new command?
+				if(m_uartComplete) {
+					cli.decode();
+					//clear isr flag
+					m_uartComplete = false;
 				}
 				break;
 
@@ -157,7 +147,7 @@ void Application::m_readADCbuffer() {
 void Application::m_buttonTest(){
 	int blue {};
 	int end {};
-	std::array<char, 5> sendBuf;
+	std::array<char, 5> sendBuf {};
 	while(1) {
 		blue = m_pinout.m_blueButton.read();
 		end = m_pinout.m_endR.read();
@@ -169,4 +159,24 @@ void Application::m_buttonTest(){
 		sendBuf.fill(0);
 		HAL_Delay(500);
 	}
+}
+
+void Application::CLIversion()  {
+	m_uart.send(std::as_bytes(std::span{"Version: 0.7.1\r\n"}));
+}
+
+void Application::CLIblink()  {
+	while(1){
+		m_pinout.m_onboardLed.toggle();
+		HAL_Delay(500);
+	}
+}
+
+void Application::CLIbreathe() {
+	m_currentState = State::breathe;
+}
+
+void Application::CLIpause() {
+	m_motor.stop();
+	m_currentState = State::menu;
 }

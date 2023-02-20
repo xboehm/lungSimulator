@@ -5,13 +5,13 @@
 #include "Adc.hpp"
 #include "MD10C.hpp"
 #include "Cli.hpp"
+#include "Command.hpp"
 #include "stm32l4xx_hal.h"
 #include <array>
 #include <charconv>
 #include <string_view>
 #include <algorithm>
 
-class Cli;
 class Application{
 public:
 	static Application& getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
@@ -22,7 +22,11 @@ public:
 	void m_readADCbuffer();
 	void m_buttonTest();
 
-	friend class Cli;
+	void CLIversion();
+	void CLIblink();
+	void CLIbreathe();
+	void CLIpause();
+
 	enum class State{
 		init,
 		menu,
@@ -32,10 +36,7 @@ public:
 
 private:
 	Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
-								TIM_HandleTypeDef* TIMhandle);
-
-
-
+						 TIM_HandleTypeDef* TIMhandle);
 	Pinout m_pinout;
 	Uart m_uart;
 	Adc m_adc;
@@ -44,7 +45,7 @@ private:
 
 public:
 	bool m_endFlag {false};
-	//uint32_t m_adcRaw {0};
 	bool m_adcComplete {false};
 	bool m_uartComplete {false};
+	uint16_t m_uartSize {0};
 };
