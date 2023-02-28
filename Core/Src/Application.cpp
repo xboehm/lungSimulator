@@ -1,4 +1,6 @@
 #include "Application.hpp"
+#include "Cli.hpp"
+#include "Command.hpp"
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
@@ -24,7 +26,7 @@ void Application::loop() {
 		static_cast<Command*>(&cmdbreathe),
 		static_cast<Command*>(&cmdpause),
 	};
-	Cli cli {commands, m_uart, m_uartSize};
+	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
 	while(1) {
@@ -59,13 +61,13 @@ void Application::loop() {
 					cli.listen();
 					menuFirstEntry = false;
 				}
+				HAL_Delay(20);
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
 					//clear isr flag
 					m_uartComplete = false;
 				}
-				HAL_Delay(20);
 				break;
 				}
 
@@ -115,6 +117,21 @@ void Application::loop() {
 		}
 	}
 
+}
+
+std::string_view Application::m_printState() const {
+	switch(m_currentState){
+	case State::init:
+		return "(init)";
+	case State::menu:
+		return "(menu)";
+	case State::breathe:
+		return "(breathe)";
+	case State::stop:
+		return "(stop)";
+	default:
+		return "(unknown state)";
+	}
 }
 
 void Application::m_printADCloop(int delay) {

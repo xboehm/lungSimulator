@@ -4,8 +4,6 @@
 #include "Uart.hpp"
 #include "Adc.hpp"
 #include "MD10C.hpp"
-#include "Cli.hpp"
-#include "Command.hpp"
 #include "stm32l4xx_hal.h"
 #include <array>
 #include <charconv>
@@ -18,6 +16,7 @@ public:
 			ADC_HandleTypeDef* adc, TIM_HandleTypeDef* TIMhandle);
 	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
+	std::string_view m_printState() const;
 	void m_printADCloop(int delay);
 	void m_readADCbuffer();
 	void m_buttonTest();
