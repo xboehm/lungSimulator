@@ -36,3 +36,7 @@ void MD10C::selfTest() {
 	HAL_Delay(600);
 	stop();
 }
+
+void MD10C::setSpeed(uint16_t speed) {
+	m_pwm.changePulse(speed);
+}

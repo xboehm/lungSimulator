@@ -8,7 +8,7 @@ public:
 	PWM(TIM_HandleTypeDef* handle, TIM_TypeDef* timer, uint32_t channel);
 	void start();
 	void stop();
-	void changePulse(unsigned int pulse);
+	void changePulse(uint16_t pulse);
 private:
 	TIM_HandleTypeDef* m_handle;
 	TIM_TypeDef* m_timer;

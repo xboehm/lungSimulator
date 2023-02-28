@@ -9,6 +9,7 @@ public:
 	void reverse();
 	void stop();
 	void selfTest();
+	void setSpeed(uint16_t speed);
 
 private:
 	GpioPin& m_dir;
