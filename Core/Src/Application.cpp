@@ -1,6 +1,7 @@
 #include "Application.hpp"
 #include "Cli.hpp"
 #include "Command.hpp"
+#include <cstdio>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
@@ -29,13 +30,14 @@ void Application::loop() {
 	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
+	float position {0.0f};
+	float flo {476*constants::lsbLength};
+	char buf[10];
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
 				//do initialization
 				//m_motor.reverse();
-				//m_currentState = State::breathe;
-
 /*
 				if(init.done()){
 					//critical section start
@@ -45,6 +47,8 @@ void Application::loop() {
 					//critical section end
 				}
 */
+//				std::snprintf(buf, std::size(buf)-1, "%f", flo);
+//				m_uart.send(std::as_bytes(std::span{buf}));
 				m_currentState = State::menu;
 				break;
 
@@ -73,21 +77,40 @@ void Application::loop() {
 
 			case(State::breathe):
 				m_adc.startConversionInterrupt();
+				//check for end detection
 				if(m_endFlag) {
 					m_currentState = State::stop;
 					break;
 				}
 				//do regulation
-				if(m_adcComplete) {
-					adcRaw = m_adc.readValue();
+				if(m_regTimer) {
+					m_adc.startConversionInterrupt();
+					while(!m_adcComplete) {
+						if(m_endFlag) {
+							m_currentState = State::stop;
+						}
+					}
+					//save new measurement as soon as its available
+					position = calcPosition(m_adc.readValue());
 					m_adcComplete = false;
-					if(adcRaw < 1200U){
-						m_motor.forward();
-					}
-					else if(adcRaw > 2800U){
-						m_motor.reverse();
-					}
+					//++sample;
+					//speed = pid.update(soll[sample], position);
+					//direction logic
+					//m_motor.setSpeed(speed);
+					//if(sample=maxSample) sample=0;
+					m_regTimer = false;
 				}
+
+//				if(m_adcComplete) {
+//					adcRaw = m_adc.readValue();
+//					m_adcComplete = false;
+//					if(adcRaw < 1200U){
+//						m_motor.forward();
+//					}
+//					else if(adcRaw > 2800U){
+//						m_motor.reverse();
+//					}
+//				}
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
@@ -176,6 +199,11 @@ void Application::m_buttonTest(){
 		sendBuf.fill(0);
 		HAL_Delay(500);
 	}
+}
+
+//at the right end of cylinder function returns 10mm
+float Application::calcPosition(uint16_t adc) {
+	return adc*constants::lsbLength-13.23737f;
 }
 
 void Application::CLIversion()  {

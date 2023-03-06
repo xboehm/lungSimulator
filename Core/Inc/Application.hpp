@@ -41,10 +41,12 @@ private:
 	Adc m_adc;
 	MD10C m_motor;
 	State m_currentState {State::init};
+	float calcPosition(uint16_t adc);
 
 public:
 	bool m_endFlag {false};
 	bool m_adcComplete {false};
 	bool m_uartComplete {false};
+	bool m_regTimer {false};
 	uint16_t m_uartSize {0};
 };

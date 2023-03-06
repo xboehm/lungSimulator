@@ -109,6 +109,7 @@ int main(void)
   MX_TIM2_Init();
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
+  HAL_TIM_Base_Start_IT(&htim2);
   application.loop();
   //application.m_buttonTest();
   //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -336,9 +337,9 @@ static void MX_TIM2_Init(void)
 
   /* USER CODE END TIM2_Init 1 */
   htim2.Instance = TIM2;
-  htim2.Init.Prescaler = 80;
+  htim2.Init.Prescaler = 80-1;
   htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim2.Init.Period = 4294967295;
+  htim2.Init.Period = 1000-1;
   htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
   if (HAL_TIM_Base_Init(&htim2) != HAL_OK)
@@ -496,6 +497,12 @@ extern "C" {
 		if(huart->Instance == USART2) {
 			application.m_uartComplete = true;
 			application.m_uartSize = Size;
+		}
+	}
+
+	void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+		if(htim == &htim2){
+			application.m_regTimer = true;
 		}
 	}
 }
