@@ -1,6 +1,8 @@
 #include "Application.hpp"
 #include "Cli.hpp"
 #include "Command.hpp"
+#include "sine.hpp"
+#include "Pid.hpp"
 #include <cstdio>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
@@ -30,6 +32,12 @@ void Application::loop() {
 	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
+	PID pid {200.0f, 50.0f, 0.01f, 0.01f, -1000, 1000, -500.0f, 500.0f, 0.001f};
+	std::size_t sample {0};
+	std::size_t maxSample {pattern::sinePattern.size()};
+	int speed {0};
+	//time in ms
+	std::size_t time {0};
 	float position {0.0f};
 	float flo {476*constants::lsbLength};
 	char buf[10];
@@ -38,6 +46,12 @@ void Application::loop() {
 			case(State::init):
 				//do initialization
 				//m_motor.reverse();
+					//direction Test
+					m_motor.forward();
+					HAL_Delay(400);
+					m_motor.reverse();
+					HAL_Delay(400);
+					m_motor.stop();
 /*
 				if(init.done()){
 					//critical section start
@@ -76,7 +90,6 @@ void Application::loop() {
 				}
 
 			case(State::breathe):
-				m_adc.startConversionInterrupt();
 				//check for end detection
 				if(m_endFlag) {
 					m_currentState = State::stop;
@@ -85,19 +98,36 @@ void Application::loop() {
 				//do regulation
 				if(m_regTimer) {
 					m_adc.startConversionInterrupt();
+					//wait for new ADC value
 					while(!m_adcComplete) {
 						if(m_endFlag) {
 							m_currentState = State::stop;
 						}
 					}
-					//save new measurement as soon as its available
+					//calculate new position measurement in mm
 					position = calcPosition(m_adc.readValue());
 					m_adcComplete = false;
-					//++sample;
-					//speed = pid.update(soll[sample], position);
+					//get correct sample
+					if(time>pattern::sinePattern[sample].time) {
+						++sample;
+					}
+					//calculate control update
+					speed = pid.update(pattern::sinePattern[sample].position, position);
 					//direction logic
-					//m_motor.setSpeed(speed);
-					//if(sample=maxSample) sample=0;
+					if(speed>0) {
+						m_motor.reverse();
+						speed = -speed;
+					}
+					else{
+						m_motor.forward();
+					}
+					m_motor.setSpeed(speed);
+					if(sample==maxSample) {
+						sample = 0;
+						time=0;
+					}
+					//update time
+					time+=1;
 					m_regTimer = false;
 				}
 
