@@ -31,3 +31,10 @@ CmdPause::CmdPause(Application& app)
 void CmdPause::execute()  {
     m_app.CLIpause();
 }
+
+CmdFeed::CmdFeed(Application& app)
+	: Command("feed", "Feed system with a new breathing pattern"), m_app(app)  {}
+
+void CmdFeed::execute()  {
+    m_app.CLIfeed();
+}

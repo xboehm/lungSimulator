@@ -28,7 +28,7 @@ public:
 		 m_uart.receiveToIdleDMA(m_rxBuf, std::size(m_rxBuf));
 	}
 
-	//decode received bytes, start to listen again immediately after m_rxBuf is read and execute command
+	//decode received bytes and execute command
 	void decode() {
 		//copy m_rxBuf to readBuf to ensure that input string_view views a string that won't change
 		std::copy(m_rxBuf, m_rxBuf+m_uartSize, m_readBuf);
@@ -62,22 +62,10 @@ public:
 		else {
 			m_cmdFound = false;
 		}
-		//start listening again
-		listen();
 		//clear m_readBuf
 		for(std::size_t i{0}; i < m_uartSize; ++i) {
 			m_readBuf[i] = '\0';
 		}
 	}
-/*
-		void select() {
-
-		}
-
-		void pause() {
-			application->m_motor.stop();
-			application->m_currentState = Application::State::menu;
-		}
-		*/
 };
 

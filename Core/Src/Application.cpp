@@ -2,6 +2,7 @@
 #include "Cli.hpp"
 #include "Command.hpp"
 #include <cstdio>
+#include <cstdlib>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
@@ -21,18 +22,21 @@ void Application::loop() {
 	CmdBlink cmdblink{application};
 	CmdBreathe cmdbreathe{application};
 	CmdPause cmdpause{application};
+	CmdFeed cmdfeed{application};
 	std::array commands{
 		static_cast<Command*>(&cmdversion),
 		static_cast<Command*>(&cmdblink),
 		static_cast<Command*>(&cmdbreathe),
 		static_cast<Command*>(&cmdpause),
+		static_cast<Command*>(&cmdfeed),
 	};
 	Cli cli {commands, m_uart, m_uartSize, application};
-	bool menuFirstEntry {true};
+	bool listening {false};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
 	float position {0.0f};
 	float flo {476*constants::lsbLength};
 	char buf[10];
+
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
@@ -54,21 +58,15 @@ void Application::loop() {
 
 			case(State::menu):
 			{
-				/*
-				cli.listen();
-				while(!m_uartComplete){
-					HAL_Delay(10);
-				}
-				m_uartComplete = false;
-				*/
-				if(menuFirstEntry){
+				if(!listening){
 					cli.listen();
-					menuFirstEntry = false;
+					listening = true;
 				}
 				HAL_Delay(20);
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
+					listening = false;
 					//clear isr flag
 					m_uartComplete = false;
 				}
@@ -77,6 +75,10 @@ void Application::loop() {
 
 			case(State::breathe):
 				m_adc.startConversionInterrupt();
+				if(!listening){
+					cli.listen();
+					listening = true;
+				}
 				//check for end detection
 				if(m_endFlag) {
 					m_currentState = State::stop;
@@ -114,11 +116,38 @@ void Application::loop() {
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
+					listening = false;
 					//clear isr flag
 					m_uartComplete = false;
 				}
 				break;
 
+			case(State::feed):
+			{
+//				uint8_t uartBuf[5000] {};
+//				float dataset[10] [2] {};
+//				uint8_t* coma {};
+//				int counter {0};
+//				m_uartSize = 200;
+//				while(m_uartSize>199) {
+//					m_uart.receiveToIdleDMA(uartBuf+counter*200, 200);
+//					//wait for data
+//					while(!m_uartComplete) {	}
+//					coma = uartBuf;
+//				while(coma!=uartBuf+std::size(uartBuf)+1){
+//						dataset[0][0] = std::atof((char*)coma);
+// 					coma = std::find(coma, uartBuf+std::size(uartBuf), ',');
+//					++coma;
+//						dataset[0][1] = std::atof((char*)coma);
+//					coma = std::find(coma, uartBuf+std::size(uartBuf), '\n');
+//						++coma;
+//				}
+//					//std::copy(uartBuf, uartBuf+std::size(uartBuf), mainBuf+counter*std::size(uartBuf));
+//					++counter;
+//					m_uartComplete = false;
+//				}
+				break;
+			}
 			case(State::stop):
 				m_motor.stop();
 				//wait for system being cleared
@@ -148,6 +177,8 @@ std::string_view Application::m_printState() const {
 		return "(init)";
 	case State::menu:
 		return "(menu)";
+	case State::feed:
+		return "(feed)";
 	case State::breathe:
 		return "(breathe)";
 	case State::stop:
@@ -224,4 +255,8 @@ void Application::CLIbreathe() {
 void Application::CLIpause() {
 	m_motor.stop();
 	m_currentState = State::menu;
+}
+
+void Application::CLIfeed() {
+	m_currentState = State::feed;
 }

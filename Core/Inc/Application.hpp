@@ -25,12 +25,14 @@ public:
 	void CLIblink();
 	void CLIbreathe();
 	void CLIpause();
+	void CLIfeed();
 
 	enum class State{
 		init,
 		menu,
+		feed,
 		breathe,
-		stop
+		stop,
 	};
 
 private:
