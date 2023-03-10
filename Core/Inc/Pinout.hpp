@@ -9,7 +9,9 @@ public:
 	GpioPin m_onboardLed;
 	GpioPin m_blueButton;
 	GpioPin m_dir;
-	GpioPin m_endR;
+	GpioPin m_endC;
+	GpioPin m_endO;
+	GpioPin m_timerPin;
 
 private:
 	friend class Application;

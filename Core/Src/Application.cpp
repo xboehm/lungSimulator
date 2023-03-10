@@ -32,26 +32,32 @@ void Application::loop() {
 	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
 	uint32_t adcRaw {m_adc.readSinglePoll()};
-	PID pid {200.0f, 50.0f, 0.01f, 0.01f, -1000, 1000, -500.0f, 500.0f, 0.001f};
+	PID pid {200.0f, 20.0f, 0.005f, 0.005f, -999, 999, -300.0f, 300.0f, 0.001f};
 	std::size_t sample {0};
-	std::size_t maxSample {pattern::sinePattern.size()};
+	std::size_t maxSample {pattern::sinePattern.size()-1};
 	int speed {0};
 	//time in ms
-	std::size_t time {0};
+	unsigned short time {0};
 	float position {0.0f};
 	float flo {476*constants::lsbLength};
 	char buf[10];
+	bool firstBreath {true};
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
 				//do initialization
-				//m_motor.reverse();
 					//direction Test
-					m_motor.forward();
-					HAL_Delay(400);
-					m_motor.reverse();
-					HAL_Delay(400);
-					m_motor.stop();
+//					m_motor.forward();
+//					m_motor.setSpeed(800);
+//					HAL_Delay(400);
+//					m_motor.reverse();
+//					HAL_Delay(400);
+//					m_motor.stop();
+
+					firstBreath = true;
+					menuFirstEntry = true;
+
+
 /*
 				if(init.done()){
 					//critical section start
@@ -67,7 +73,7 @@ void Application::loop() {
 				break;
 
 			case(State::menu):
-			{
+
 				/*
 				cli.listen();
 				while(!m_uartComplete){
@@ -87,60 +93,69 @@ void Application::loop() {
 					m_uartComplete = false;
 				}
 				break;
-				}
+
 
 			case(State::breathe):
+				if(firstBreath){
+					m_motor.reverse();
+					m_motor.setSpeed(720);
+					firstBreath = false;
+				}
 				//check for end detection
 				if(m_endFlag) {
 					m_currentState = State::stop;
 					break;
 				}
-				//do regulation
-				if(m_regTimer) {
-					m_adc.startConversionInterrupt();
-					//wait for new ADC value
-					while(!m_adcComplete) {
-						if(m_endFlag) {
-							m_currentState = State::stop;
-						}
-					}
-					//calculate new position measurement in mm
-					position = calcPosition(m_adc.readValue());
-					m_adcComplete = false;
-					//get correct sample
-					if(time>pattern::sinePattern[sample].time) {
-						++sample;
-					}
-					//calculate control update
-					speed = pid.update(pattern::sinePattern[sample].position, position);
-					//direction logic
-					if(speed>0) {
-						m_motor.reverse();
-						speed = -speed;
-					}
-					else{
-						m_motor.forward();
-					}
-					m_motor.setSpeed(speed);
-					if(sample==maxSample) {
-						sample = 0;
-						time=0;
-					}
-					//update time
-					time+=1;
-					m_regTimer = false;
-				}
-
-//				if(m_adcComplete) {
-//					adcRaw = m_adc.readValue();
+//				//do regulation
+//				if(m_regTimer) {
+//					m_adc.startConversionInterrupt();
+//					//wait for new ADC value
+//					while(!m_adcComplete) {
+//						if(m_endFlag) {
+//							m_currentState = State::stop;
+//						}
+//					}
+//					//calculate new position measurement in mm
+//					position = calcPosition(m_adc.readValue());
 //					m_adcComplete = false;
-//					if(adcRaw < 1200U){
+//					//get correct sample
+//					if(time>pattern::sinePattern[sample].time) {
+//						++sample;
+//					}
+//					//calculate control update
+//					speed = pid.update(pattern::sinePattern[sample].position, position);
+//					//LOG DATA HERE
+//					//direction logic
+//					if(speed < 0) {
+//						m_motor.reverse();
+//						speed = -speed;
+//					}
+//					else{
 //						m_motor.forward();
 //					}
-//					else if(adcRaw > 2800U){
-//						m_motor.reverse();
+//					m_motor.setSpeed(speed);
+//
+//					//logic to start pattern from the beginning if end was reached
+//					if(time==pattern::sinePattern[maxSample].time){
+//						time = 1;
+//						sample = 1;
 //					}
+//					else{
+//						++time;
+//					}
+//					m_regTimer = false;
 //				}
+				m_adc.startConversionInterrupt();
+				if(m_adcComplete) {
+					adcRaw = m_adc.readValue();
+					m_adcComplete = false;
+					if(adcRaw < 1200U){
+						m_motor.forward();
+					}
+					else if(adcRaw > 3000U){
+						m_motor.reverse();
+					}
+				}
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
@@ -154,13 +169,14 @@ void Application::loop() {
 				//wait for system being cleared
 				while(1) {
 					m_pinout.m_onboardLed.toggle();
-					//blue button pressed && end switch released
-					if(m_pinout.m_blueButton.read() && m_pinout.m_endR.read()) {
+					//blue button pressed and both end switches released
+					if(m_pinout.m_blueButton.read() && m_pinout.m_endC.read() && m_pinout.m_endO.read()) {
 						//critical section start
 						//irq.disable();
 						m_endFlag = false;
 						//irq.enable();
 						//critical section end
+						m_pinout.m_onboardLed.clear();
 						m_currentState = State::init;
 						break;
 					}
@@ -220,7 +236,7 @@ void Application::m_buttonTest(){
 	std::array<char, 5> sendBuf {};
 	while(1) {
 		blue = m_pinout.m_blueButton.read();
-		end = m_pinout.m_endR.read();
+		end = m_pinout.m_endC.read();
 		std::to_chars(sendBuf.data(), sendBuf.data()+1, blue);
 		std::to_chars(sendBuf.data()+1, sendBuf.data()+2, end);
 		sendBuf.at(3) = '\r';
@@ -253,5 +269,6 @@ void Application::CLIbreathe() {
 
 void Application::CLIpause() {
 	m_motor.stop();
-	m_currentState = State::menu;
+	m_currentState = State::init;
+	//menu first entry = true;
 }
