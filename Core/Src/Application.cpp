@@ -39,9 +39,9 @@ void Application::loop() {
 	//time in ms
 	unsigned short time {0};
 	float position {0.0f};
-	float flo {476*constants::lsbLength};
 	char buf[10];
 	bool firstBreath {true};
+	bool temptemp {true};
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
@@ -96,66 +96,90 @@ void Application::loop() {
 
 
 			case(State::breathe):
-				if(firstBreath){
-					m_motor.reverse();
-					m_motor.setSpeed(720);
-					firstBreath = false;
-				}
+//				if(firstBreath){
+//					m_motor.reverse();
+//					m_motor.setSpeed(520);
+//					firstBreath = false;
+//				}
+//				m_adc.startConversionInterrupt();
+
 				//check for end detection
 				if(m_endFlag) {
+					m_motor.stop();
+//					m_uart.send(std::as_bytes(std::span{"\nEndposition: "}));
+//					std::snprintf(buf, std::size(buf)-1, "%d", m_adc.readValue());
+//					m_uart.send(std::as_bytes(std::span{buf}));
+//					for(int i {0}; i<10; ++i){
+//						buf[i] = '\0';
+//					}
+//
+//					while(1){
+//						if(m_pinout.m_blueButton.read()){
+//							m_motor.forward();
+//							m_endFlag = false;
+//							break;
+//						}
+//					}
 					m_currentState = State::stop;
 					break;
 				}
-//				//do regulation
-//				if(m_regTimer) {
-//					m_adc.startConversionInterrupt();
-//					//wait for new ADC value
-//					while(!m_adcComplete) {
-//						if(m_endFlag) {
-//							m_currentState = State::stop;
-//						}
-//					}
-//					//calculate new position measurement in mm
-//					position = calcPosition(m_adc.readValue());
-//					m_adcComplete = false;
-//					//get correct sample
-//					if(time>pattern::sinePattern[sample].time) {
-//						++sample;
-//					}
-//					//calculate control update
-//					speed = pid.update(pattern::sinePattern[sample].position, position);
-//					//LOG DATA HERE
-//					//direction logic
-//					if(speed < 0) {
-//						m_motor.reverse();
-//						speed = -speed;
-//					}
-//					else{
-//						m_motor.forward();
-//					}
-//					m_motor.setSpeed(speed);
-//
-//					//logic to start pattern from the beginning if end was reached
-//					if(time==pattern::sinePattern[maxSample].time){
-//						time = 1;
-//						sample = 1;
-//					}
-//					else{
-//						++time;
-//					}
-//					m_regTimer = false;
-//				}
-				m_adc.startConversionInterrupt();
-				if(m_adcComplete) {
-					adcRaw = m_adc.readValue();
+				//do regulation
+				if(m_regTimer) {
+					m_pinout.m_timerPin.set();
+					m_adc.startConversionInterrupt();
+					//wait for new ADC value
+					while(!m_adcComplete) {
+						if(m_endFlag) {
+							m_motor.stop();
+							m_currentState = State::stop;
+							break;
+						}
+					}
+					//calculate new position measurement in mm
+					position = calcPosition(m_adc.readValue());
 					m_adcComplete = false;
-					if(adcRaw < 1200U){
+					//get correct sample
+					if(time>pattern::sinePattern[sample].time) {
+						++sample;
+					}
+					//calculate control update
+					speed = pid.update(pattern::sinePattern[sample].position, position);
+					//LOG DATA HERE
+					//direction logic
+					if(speed < 0) {
+						m_motor.reverse();
+						speed = -speed;
+					}
+					else{
 						m_motor.forward();
 					}
-					else if(adcRaw > 3000U){
-						m_motor.reverse();
+					m_motor.setSpeed(speed);
+
+					//logic to start pattern from the beginning if end was reached
+					if(time==pattern::sinePattern[maxSample].time){
+						time = 1;
+						sample = 1;
 					}
+					else{
+						++time;
+					}
+					m_regTimer = false;
+					m_pinout.m_timerPin.clear();
 				}
+
+			/* moving from end to end */
+//				m_adc.startConversionInterrupt();
+//				if(m_adcComplete) {
+//					adcRaw = m_adc.readValue();
+//					m_adcComplete = false;
+//					if(adcRaw < 1200U){
+//						m_motor.forward();
+//					}
+//					else if(adcRaw > 3000U){
+//						m_motor.reverse();
+//					}
+//				}
+
 				//new command?
 				if(m_uartComplete) {
 					cli.decode();
