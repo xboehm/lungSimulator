@@ -20,6 +20,9 @@ public:
 	void m_printADCloop(int delay);
 	void m_readADCbuffer();
 	void m_buttonTest();
+	void m_stopMotor();
+	void m_getEndPositions();
+	void m_toggleTimerPin();
 
 	void CLIversion();
 	void CLIblink();
@@ -41,7 +44,7 @@ private:
 	Adc m_adc;
 	MD10C m_motor;
 	State m_currentState {State::init};
-	float calcPosition(uint16_t adc);
+	float m_calcPosition(uint16_t adc);
 
 public:
 	bool m_endFlag {false};

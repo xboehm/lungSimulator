@@ -52,6 +52,7 @@ TIM_HandleTypeDef htim2;
 
 UART_HandleTypeDef huart2;
 DMA_HandleTypeDef hdma_usart2_rx;
+DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
 Application&  application {Application::getInstance(&huart2, &hdma_usart2_rx, &hadc1, &htim1)};
@@ -110,6 +111,7 @@ int main(void)
   MX_TIM1_Init();
   /* USER CODE BEGIN 2 */
   HAL_TIM_Base_Start_IT(&htim2);
+  __HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
   application.loop();
   //application.m_buttonTest();
   //HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_1);
@@ -286,7 +288,7 @@ static void MX_TIM1_Init(void)
     Error_Handler();
   }
   sConfigOC.OCMode = TIM_OCMODE_PWM1;
-  sConfigOC.Pulse = 500;
+  sConfigOC.Pulse = 250;
   sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCNPolarity = TIM_OCNPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
@@ -379,7 +381,7 @@ static void MX_USART2_UART_Init(void)
 
   /* USER CODE END USART2_Init 1 */
   huart2.Instance = USART2;
-  huart2.Init.BaudRate = 115200;
+  huart2.Init.BaudRate = 460800;
   huart2.Init.WordLength = UART_WORDLENGTH_8B;
   huart2.Init.StopBits = UART_STOPBITS_1;
   huart2.Init.Parity = UART_PARITY_NONE;
@@ -411,6 +413,9 @@ static void MX_DMA_Init(void)
   /* DMA1_Channel6_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+  /* DMA1_Channel7_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
 
 }
 
@@ -474,9 +479,12 @@ extern "C" {
 	  /* Prevent unused argument(s) compilation warning */
 	  UNUSED(GPIO_Pin);
 	  if(GPIO_Pin == endC_Pin || GPIO_Pin == endO_Pin) {
-		  //critical section start
-		  application.m_endFlag = true;
-		  //critical section end
+		  if(!application.m_endFlag) {
+		  	  //critical section start
+			  application.m_stopMotor();
+			  application.m_endFlag = true;
+			  //critical section end
+		  }
 	  }
 	}
 
@@ -495,6 +503,13 @@ extern "C" {
 	void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
 		if(htim == &htim2){
 			application.m_regTimer = true;
+		}
+	}
+
+	void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+		__HAL_DMA_DISABLE_IT(&hdma_usart2_tx, DMA_IT_HT);
+		if(huart->Instance == USART2) {
+			application.m_toggleTimerPin();
 		}
 	}
 }

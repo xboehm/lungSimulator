@@ -3,6 +3,7 @@
 #include "Command.hpp"
 #include "sine.hpp"
 #include "Pid.hpp"
+#include "pattern1.hpp"
 #include <cstdio>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
@@ -23,28 +24,29 @@ void Application::loop() {
 	CmdBlink cmdblink{application};
 	CmdBreathe cmdbreathe{application};
 	CmdPause cmdpause{application};
+	CmdEndpos cmdendpos{application};
 	std::array commands{
 		static_cast<Command*>(&cmdversion),
 		static_cast<Command*>(&cmdblink),
 		static_cast<Command*>(&cmdbreathe),
 		static_cast<Command*>(&cmdpause),
+		static_cast<Command*>(&cmdendpos),
 	};
 	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
-	uint32_t adcRaw {m_adc.readSinglePoll()};
-	PID pid {200.0f, 20.0f, 0.005f, 0.005f, -999, 999, -300.0f, 300.0f, 0.001f};
+	PID pid {240.0f, 50.0f, 0.001f, 0.002f, -999, 999, -300.0f, 300.0f, 0.001f};
 	std::size_t sample {0};
-	std::size_t maxSample {pattern::sinePattern.size()-1};
+	std::size_t maxSample {pattern::sine.size()-1};
 	int speed {0};
 	//time in ms
 	unsigned short time {0};
 	float position {0.0f};
-	char buf[10];
-	bool firstBreath {true};
-	bool temptemp {true};
+	char buf[20] {};
+	int breathCounter {0};
 	while(1) {
 		switch(m_currentState){
 			case(State::init):
+	{
 				//do initialization
 					//direction Test
 //					m_motor.forward();
@@ -54,7 +56,6 @@ void Application::loop() {
 //					HAL_Delay(400);
 //					m_motor.stop();
 
-					firstBreath = true;
 					menuFirstEntry = true;
 
 
@@ -67,20 +68,34 @@ void Application::loop() {
 					//critical section end
 				}
 */
+
+//				sample = 120;
+//				position = 421.54f;
+//				speed = -777;
+//				char buffer [20] {};
+//				m_pinout.m_timerPin.set();
+//				std::snprintf(&buffer[0], 20, "%6.2f,%6.2f,%+4i\n", pattern::sine[sample].position , position, speed);
+//				std::snprintf(&buffer[0], 19, "567.45,-913\n");
+//				HAL_UART_Transmit_DMA(m_uart.m_handle, (uint8_t*)&buffer[0], 19);
+//				m_pinout.m_timerPin.set();
+//				HAL_StatusTypeDef halStatus = HAL_UART_Transmit_DMA(m_uart.m_handle, (uint8_t*)&buffer[0], 12);
+//				for(unsigned int i{0}; i < 14; ++i){
+//					buffer[i] = '\0';
+//				}
+//				m_pinout.m_timerPin.clear();
+//				sample = 0;
+//				position = 0.0f;
+//				speed = 0;
+//
+//				while(1){}
+
 //				std::snprintf(buf, std::size(buf)-1, "%f", flo);
 //				m_uart.send(std::as_bytes(std::span{buf}));
 				m_currentState = State::menu;
 				break;
+	}
 
 			case(State::menu):
-
-				/*
-				cli.listen();
-				while(!m_uartComplete){
-					HAL_Delay(10);
-				}
-				m_uartComplete = false;
-				*/
 				if(menuFirstEntry){
 					cli.listen();
 					menuFirstEntry = false;
@@ -96,30 +111,9 @@ void Application::loop() {
 
 
 			case(State::breathe):
-//				if(firstBreath){
-//					m_motor.reverse();
-//					m_motor.setSpeed(520);
-//					firstBreath = false;
-//				}
-//				m_adc.startConversionInterrupt();
-
 				//check for end detection
 				if(m_endFlag) {
-					m_motor.stop();
-//					m_uart.send(std::as_bytes(std::span{"\nEndposition: "}));
-//					std::snprintf(buf, std::size(buf)-1, "%d", m_adc.readValue());
-//					m_uart.send(std::as_bytes(std::span{buf}));
-//					for(int i {0}; i<10; ++i){
-//						buf[i] = '\0';
-//					}
-//
-//					while(1){
-//						if(m_pinout.m_blueButton.read()){
-//							m_motor.forward();
-//							m_endFlag = false;
-//							break;
-//						}
-//					}
+//					m_motor.stop();
 					m_currentState = State::stop;
 					break;
 				}
@@ -130,40 +124,56 @@ void Application::loop() {
 					//wait for new ADC value
 					while(!m_adcComplete) {
 						if(m_endFlag) {
-							m_motor.stop();
+//							m_motor.stop();
 							m_currentState = State::stop;
 							break;
 						}
 					}
 					//calculate new position measurement in mm
-					position = calcPosition(m_adc.readValue());
+					position = m_calcPosition(m_adc.readValue());
 					m_adcComplete = false;
 					//get correct sample
-					if(time>pattern::sinePattern[sample].time) {
+					if(time>pattern::sine[sample].time) {
 						++sample;
 					}
 					//calculate control update
-					speed = pid.update(pattern::sinePattern[sample].position, position);
-					//LOG DATA HERE
+					speed = pid.update(pattern::sine[sample].position, position);
+
 					//direction logic
 					if(speed < 0) {
 						m_motor.reverse();
-						speed = -speed;
+//						speed = -speed;
+						m_motor.setSpeed(-speed);
 					}
 					else{
 						m_motor.forward();
+						m_motor.setSpeed(speed);
 					}
-					m_motor.setSpeed(speed);
+
+
+					//LOG DATA HERE
+					if(breathCounter < 3) {
+						std::snprintf(buf, 20, "%6.2f,%6.2f,%+4i\n", pattern::sine[sample].position, position, speed);
+//						if(buflength > 0) {
+//							m_uart.send(std::as_bytes(std::span{buf, static_cast<unsigned int>(buflength)}));
+							HAL_UART_Transmit(m_uart.m_handle, (uint8_t*)&buf[0], 19, HAL_MAX_DELAY);
+//						}
+//						for(unsigned int i{0}; i < std::size(buf); ++i){
+//							buf[i] = '\0';
+//						}
+					}
 
 					//logic to start pattern from the beginning if end was reached
-					if(time==pattern::sinePattern[maxSample].time){
+					if(time==pattern::sine[maxSample].time){
 						time = 1;
 						sample = 1;
+						++breathCounter;
 					}
 					else{
 						++time;
 					}
 					m_regTimer = false;
+
 					m_pinout.m_timerPin.clear();
 				}
 
@@ -189,7 +199,7 @@ void Application::loop() {
 				break;
 
 			case(State::stop):
-				m_motor.stop();
+//				m_motor.stop();
 				//wait for system being cleared
 				while(1) {
 					m_pinout.m_onboardLed.toggle();
@@ -272,12 +282,52 @@ void Application::m_buttonTest(){
 }
 
 //at the right end of cylinder function returns 10mm
-float Application::calcPosition(uint16_t adc) {
+float Application::m_calcPosition(uint16_t adc) {
 	return adc*constants::lsbLength-13.23737f;
 }
 
+void Application::m_stopMotor() {
+	m_motor.stop();
+}
+
+void Application::m_getEndPositions() {
+	m_motor.reverse();
+	m_motor.setSpeed(420);
+	//wait for end detection;
+	while(!m_endFlag){
+		//no optimization!
+	}
+//	m_motor.stop();
+	uint32_t endPosClosed {m_adc.readSinglePoll()};
+	HAL_Delay(10);
+	m_motor.forward();
+	HAL_Delay(200);
+	m_endFlag = false;
+	//wait for end detection;
+	while(!m_endFlag){
+		//no optimization!
+	}
+//	m_motor.stop();
+	uint32_t endPosOpen {m_adc.readSinglePoll()};
+	HAL_Delay(10);
+	m_motor.reverse();
+	HAL_Delay(300);
+	m_motor.stop();
+	m_endFlag = false;
+	char buf[12] {};
+	auto buflength {std::snprintf(buf, std::size(buf), "%lu, %lu\n", endPosClosed, endPosOpen)};
+	if(buflength > 0) {
+		m_uart.send(std::as_bytes(std::span{"Endpositions: "}));
+		m_uart.send(std::as_bytes(std::span{buf, static_cast<unsigned int>(buflength)}));
+	}
+}
+
+void Application::m_toggleTimerPin() {
+	m_pinout.m_timerPin.clear();
+}
+
 void Application::CLIversion()  {
-	m_uart.send(std::as_bytes(std::span{"Version: 0.7.1\r\n"}));
+	m_uart.send(std::as_bytes(std::span{"Version: 0.1\r\n"}));
 }
 
 void Application::CLIblink()  {
@@ -293,6 +343,6 @@ void Application::CLIbreathe() {
 
 void Application::CLIpause() {
 	m_motor.stop();
-	m_currentState = State::init;
+	m_currentState = State::menu;
 	//menu first entry = true;
 }

@@ -42,3 +42,11 @@ public:
 private:
   Application& m_app;
 };
+
+class CmdEndpos : public Command {
+public:
+  CmdEndpos(Application& app);
+  void execute() override;
+private:
+  Application& m_app;
+};

@@ -31,3 +31,10 @@ CmdPause::CmdPause(Application& app)
 void CmdPause::execute()  {
     m_app.CLIpause();
 }
+
+CmdEndpos::CmdEndpos(Application& app)
+	: Command("endpos", "Get the end positions by driving to the end switches"), m_app(app) {}
+
+void CmdEndpos::execute() {
+	m_app.m_getEndPositions();
+}
