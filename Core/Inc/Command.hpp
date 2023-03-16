@@ -35,6 +35,14 @@ private:
   Application& m_app;
 };
 
+class CmdSelect : public Command {
+public:
+	CmdSelect(Application& app);
+	  void execute() override;
+	private:
+	  Application& m_app;
+};
+
 class CmdPause : public Command {
 public:
   CmdPause(Application& app);

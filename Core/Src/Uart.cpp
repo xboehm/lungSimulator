@@ -9,8 +9,8 @@ void Uart::send(std::span<const std::byte> const buf) {
 	HAL_UART_Transmit(m_handle, reinterpret_cast<const uint8_t *>(buf.data()), buf.size(), HAL_MAX_DELAY);
 }
 
-void Uart::send1(uint8_t* buf, uint16_t size){
-	HAL_UART_Transmit(m_handle, buf, size, 100);
+void Uart::send1(char* buf, uint16_t size){
+	HAL_UART_Transmit(m_handle, (uint8_t*)buf, size, 100);
 }
 
 void Uart::receive(uint8_t* buf, uint16_t size) {

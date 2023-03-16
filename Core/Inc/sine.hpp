@@ -1,13 +1,9 @@
 #pragma once
 
+#include "Breath.hpp"
 #include <array>
 
 namespace pattern{
-	struct BreathPoint {
-		unsigned short time;
-		float position;
-	};
-
 	static constexpr std::array<BreathPoint, 351> sine {
 	  BreathPoint{     0,  30.00}, BreathPoint{   10,  30.01}, BreathPoint{  20,  30.03}, BreathPoint{  30,  30.07}, BreathPoint{  40,  30.13}, BreathPoint{  50,  30.20}, BreathPoint{  60,  30.29}, BreathPoint{  70,  30.39}, BreathPoint{  80,  30.51}, BreathPoint{  90,  30.65},
 	  BreathPoint{ 100,  30.80}, BreathPoint{ 110,  30.97}, BreathPoint{ 120,  31.16}, BreathPoint{ 130,  31.36}, BreathPoint{ 140,  31.57}, BreathPoint{ 150,  31.80}, BreathPoint{ 160,  32.05}, BreathPoint{ 170,  32.31}, BreathPoint{ 180,  32.59}, BreathPoint{ 190,  32.88},

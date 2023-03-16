@@ -25,6 +25,13 @@ void CmdBreathe::execute()  {
     m_app.CLIbreathe();
 }
 
+CmdSelect::CmdSelect(Application& app)
+	: Command("select", "Select a breathing pattern to run"), m_app(app)  {}
+
+void CmdSelect::execute()  {
+    m_app.CLIselect();
+}
+
 CmdPause::CmdPause(Application& app)
 	: Command("pause", "Suspend the breathing cycle"), m_app(app)  {}
 
