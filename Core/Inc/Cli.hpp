@@ -2,6 +2,7 @@
 
 #include "Command.hpp"
 #include "Application.hpp"
+#include "Uart.hpp"
 #include <cstddef>
 #include <array>
 

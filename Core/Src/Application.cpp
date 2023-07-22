@@ -4,6 +4,8 @@
 #include "sine.hpp"
 #include "Pid.hpp"
 #include "pattern1.hpp"
+#include "pattern2.hpp"
+#include "pattern3.hpp"
 #include <cstdio>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
@@ -38,7 +40,7 @@ void Application::loop() {
 	};
 	Cli cli {commands, m_uart, m_uartSize, application};
 	bool menuFirstEntry {true};
-	PID pid {240.0f, 50.0f, 0.001f, 0.002f, -999, 999, -300.0f, 300.0f, 0.001f};
+	PID pid {120.0f, 0.0f, 0.0f, 0.1f, -999, 999, -200.0f, 200.0f, 0.001f};
 	std::size_t sample {0};
 	int speed {0};
 	//time in ms
@@ -314,7 +316,9 @@ void Application::CLIselect() {
 	m_uart.send(std::as_bytes(std::span{"The following patterns are available:\n"}));
 	m_uart.send(std::as_bytes(std::span{"0: Abort\n"}));
 	m_uart.send(std::as_bytes(std::span{"1: Sine\n"}));
-	m_uart.send(std::as_bytes(std::span{"2: Pattern1"}));
+	m_uart.send(std::as_bytes(std::span{"2: Pattern1\n"}));
+	m_uart.send(std::as_bytes(std::span{"3: Pattern2\n"}));
+	m_uart.send(std::as_bytes(std::span{"4: Pattern3\n"}));
 	uint8_t buffer[5] {};
 	bool found {false};
 	m_uartComplete = false;
@@ -340,6 +344,16 @@ void Application::CLIselect() {
 				m_breathingPattern.length = pattern::one.size();
 				found = true;
 				break;
+			case '3':
+				std::copy(pattern::two.begin(), pattern::two.end(), m_breathingPattern.data.begin());
+				m_breathingPattern.length = pattern::two.size();
+				found = true;
+				break;
+			case '4':
+				std::copy(pattern::three.begin(), pattern::three.end(), m_breathingPattern.data.begin());
+				m_breathingPattern.length = pattern::three.size();
+				found = true;
+				break;
 			default:
 				m_uart.send(std::as_bytes(std::span{"Please enter a vaild number\n"}));
 				for(std::size_t i{0}; i < std::size(buffer); ++i) {
@@ -350,7 +364,7 @@ void Application::CLIselect() {
 	}
 	m_breathCounter = 0;
 	buffer[1] = '\n';
-	m_uart.send(std::as_bytes(std::span{"Successfully switched to pattern number "}));
+	m_uart.send(std::as_bytes(std::span{"Successfully switched to  number "}));
 	m_uart.send(std::as_bytes(std::span{buffer, 2}));
 }
 

@@ -38,5 +38,5 @@ void MD10C::selfTest() {
 }
 
 void MD10C::setSpeed(uint16_t speed) {
-	m_pwm.changePulse(speed);
+	m_pwm.changeDutyCycle(speed);
 }

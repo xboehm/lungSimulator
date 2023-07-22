@@ -12,10 +12,10 @@ void PWM::stop(){
 	HAL_TIM_PWM_Stop(m_handle, m_channel);
 }
 
-void PWM::changePulse(uint16_t pulse){
+void PWM::changeDutyCycle(uint16_t dutyCycle){
 	//if requested duty cycle is less than or equal to 100%
-	if(pulse <= (m_timer->ARR)){
-		m_timer->CCR1 = pulse;
+	if(dutyCycle <= (m_timer->ARR)){
+		m_timer->CCR1 = dutyCycle;
 	}
 	else{
 		//Error handling
