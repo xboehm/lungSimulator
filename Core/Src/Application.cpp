@@ -1,18 +1,18 @@
 #include "Application.hpp"
 #include "Cli.hpp"
 #include "Command.hpp"
-#include "sine.hpp"
 #include "Pid.hpp"
-#include "pattern1.hpp"
-#include "pattern2.hpp"
-#include "pattern3.hpp"
+#include "sine6.hpp"
 #include <cstdio>
+#include <cmath>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
 	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {
-		std::copy(pattern::sine.begin(), pattern::sine.end(), m_breathingPattern.data.begin());
-		m_breathingPattern.length = pattern::sine.size();
+		std::copy(pattern::sineSix.begin(), pattern::sineSix.end(), m_breathingPattern.data.begin());
+		m_breathingPattern.length = pattern::sineSix.size();
+		m_step = 1.0;	//implement elsewhere!
+		m_endTime = 60000/6;	//specific for sineSix
 }
 
 Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
@@ -47,6 +47,10 @@ void Application::loop() {
 	unsigned short time {0};
 	float position {0.0f};
 	char buf[20] {};
+	int glidingSampleRoundedDown {0};
+	float glidingSample {0.0f};
+	float interpolPosition {m_breathingPattern.data[0]};
+
 
 	while(1) {
 		switch(m_currentState){
@@ -88,6 +92,7 @@ void Application::loop() {
 				}
 				//do regulation
 				if(m_regTimer) {
+					//timing Pin
 					m_pinout.m_timerPin.set();
 					m_adc.startConversionInterrupt();
 					//wait for new ADC value
@@ -101,11 +106,20 @@ void Application::loop() {
 					position = m_calcPosition(m_adc.readValue());
 					m_adcComplete = false;
 					//get correct sample
-					if(time > m_breathingPattern.data[sample].time) {
-						++sample;
-					}
+					if(time > sample*10){
+					            ++sample;
+					            glidingSample = sample * m_step;
+					            glidingSampleRoundedDown = static_cast<int>(glidingSample);
+					            if(glidingSampleRoundedDown >= m_breathingPattern.length-1){
+					            	interpolPosition = m_breathingPattern.data[m_breathingPattern.length-1];
+					                break;
+					            }
+					            else{
+					            	interpolPosition = std::lerp(m_breathingPattern.data[glidingSampleRoundedDown], m_breathingPattern.data[glidingSampleRoundedDown+1], glidingSample-glidingSampleRoundedDown);
+					            }
+					        }
 					//calculate control update
-					speed = pid.update(m_breathingPattern.data[sample].position, position);
+					speed = pid.update(interpolPosition, position);
 					//direction logic
 					if(speed < 0) {
 						m_motor.reverse();
@@ -119,15 +133,15 @@ void Application::loop() {
 					//LOG DATA HERE
 					if(constants::LogPID) {
 						if(m_breathCounter < 3) {
-							std::snprintf(buf, std::size(buf), "%6.2f,%6.2f,%+4i\n", m_breathingPattern.data[sample].position, position, speed);
+							std::snprintf(buf, std::size(buf), "%6.2f,%6.2f,%+4i\n", interpolPosition, position, speed);
 							m_uart.send1(buf, 19);
 						}
 					}
 
 					//logic to start pattern from the beginning if end was reached
-					if(time ==  m_breathingPattern.data[m_breathingPattern.length-1].time){
+					if(time ==  m_endTime){
 						time = 1;
-						sample = 1;
+						sample = 0;
 						++m_breathCounter;
 					}
 					else{
@@ -135,6 +149,7 @@ void Application::loop() {
 					}
 					m_regTimer = false;
 
+					//timing Pin
 					m_pinout.m_timerPin.clear();
 				}
 
@@ -315,10 +330,8 @@ void Application::CLIbreathe() {
 void Application::CLIselect() {
 	m_uart.send(std::as_bytes(std::span{"The following patterns are available:\n"}));
 	m_uart.send(std::as_bytes(std::span{"0: Abort\n"}));
-	m_uart.send(std::as_bytes(std::span{"1: Sine\n"}));
-	m_uart.send(std::as_bytes(std::span{"2: Pattern1\n"}));
-	m_uart.send(std::as_bytes(std::span{"3: Pattern2\n"}));
-	m_uart.send(std::as_bytes(std::span{"4: Pattern3\n"}));
+	m_uart.send(std::as_bytes(std::span{"1: Sine6\n"}));
+
 	uint8_t buffer[5] {};
 	bool found {false};
 	m_uartComplete = false;
@@ -335,23 +348,8 @@ void Application::CLIselect() {
 				m_uart.send(std::as_bytes(std::span{"Aborted\n"}));
 				return;
 			case '1':
-				std::copy(pattern::sine.begin(), pattern::sine.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::sine.size();
-				found = true;
-				break;
-			case '2':
-				std::copy(pattern::one.begin(), pattern::one.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::one.size();
-				found = true;
-				break;
-			case '3':
-				std::copy(pattern::two.begin(), pattern::two.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::two.size();
-				found = true;
-				break;
-			case '4':
-				std::copy(pattern::three.begin(), pattern::three.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::three.size();
+				std::copy(pattern::sineSix.begin(), pattern::sineSix.end(), m_breathingPattern.data.begin());
+				m_breathingPattern.length = pattern::sineSix.size();
 				found = true;
 				break;
 			default:
@@ -363,6 +361,8 @@ void Application::CLIselect() {
 		}
 	}
 	m_breathCounter = 0;
+	m_step = m_requested_freq / m_breathingPattern.frequency;
+	m_endTime = 60000 / m_requested_freq;
 	buffer[1] = '\n';
 	m_uart.send(std::as_bytes(std::span{"Successfully switched to  number "}));
 	m_uart.send(std::as_bytes(std::span{buffer, 2}));

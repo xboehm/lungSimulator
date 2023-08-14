@@ -51,6 +51,9 @@ private:
 	State m_currentState {State::init};
 	BreathingPattern m_breathingPattern {};
 	int m_breathCounter {0};
+	float m_requested_freq {6.0f};
+	float m_step {0.0f};
+	int m_endTime {0};
 	float m_calcPosition(uint16_t adc);
 
 public:
