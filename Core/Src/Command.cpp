@@ -1,5 +1,4 @@
 #include "Command.hpp"
-#include "Application.hpp"
 
 Command::Command(std::string_view _name, std::string_view _help)
 		: name(_name), help(_help) {}
@@ -44,4 +43,18 @@ CmdEndpos::CmdEndpos(Application& app)
 
 void CmdEndpos::execute() {
 	m_app.m_getEndPositions();
+}
+
+CmdFreq::CmdFreq(Application& app, std::array<char, 8>& payload)
+    : Command("freq", "Scale pattern to different breathing frequency"), m_app(app), m_payload(payload) {}
+
+void CmdFreq::execute() {
+    m_app.CLIfreq(m_payload);
+}
+
+CmdVolume::CmdVolume(Application& app, std::array<char, 8>& payload)
+    : Command("volume", "Scale pattern to different volume"), m_app(app), m_payload(payload) {}
+
+void CmdVolume::execute() {
+    m_app.CLIvolume(m_payload);
 }

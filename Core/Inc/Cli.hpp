@@ -1,10 +1,12 @@
 #pragma once
 
+#include "GlobalConf.hpp"
 #include "Command.hpp"
 #include "Application.hpp"
 #include "Uart.hpp"
 #include <cstddef>
 #include <array>
+#include <string_view>
 
 template<std::size_t N>
 class Cli{
@@ -19,10 +21,15 @@ private:
 	Application& m_application;
 	uint8_t m_rxBuf[constants::RxBufSize] {};
 	char m_readBuf[constants::RxBufSize] {};
+	std::array<char, 8> m_payload {};
 	bool m_cmdFound {false};
 
 
 public:
+	std::array<char, 8>& getPayload(){
+	    return m_payload;
+	  }
+
 	void listen()  {
 		 m_uart.send(std::as_bytes(std::span{"<Enter command> "}));
 		 m_uart.send(std::as_bytes(std::span{m_application.m_printState()}));
@@ -48,6 +55,12 @@ public:
 			}
 		}
 		else{
+			int hyphenPos = input.find('-');
+			//if Command has a payload
+			if(hyphenPos != -1){
+				std::copy(input.begin()+hyphenPos+1, input.end(), m_payload.data());
+				input.remove_suffix(input.size()-hyphenPos);
+			}
 			//check if the input matches a known command name. If so, execute it
 			for(auto cmd: m_commands){
 				if(input == cmd->name){
@@ -65,20 +78,11 @@ public:
 		}
 		//start listening again
 		listen();
-		//clear m_readBuf
+		//clear buffers
 		for(std::size_t i{0}; i < m_uartSize; ++i) {
 			m_readBuf[i] = '\0';
 		}
+		m_payload.fill(0);
 	}
-/*
-		void select() {
-
-		}
-
-		void pause() {
-			application->m_motor.stop();
-			application->m_currentState = Application::State::menu;
-		}
-		*/
 };
 

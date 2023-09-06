@@ -1,8 +1,9 @@
 #pragma once
 
+#include "Application.hpp"
 #include <string_view>
 
-class Application;
+//class Application;
 class Command{
 public:
 	Command(std::string_view _name, std::string_view _help);
@@ -57,4 +58,22 @@ public:
   void execute() override;
 private:
   Application& m_app;
+};
+
+class CmdFreq : public Command{
+public:
+  CmdFreq(Application& app, std::array<char, 8>& payload);
+  void execute() override;
+private:
+  Application& m_app;
+  std::array<char, 8>& m_payload;
+};
+
+class CmdVolume : public Command{
+public:
+  CmdVolume(Application& app, std::array<char, 8>& payload);
+  void execute() override;
+private:
+  Application& m_app;
+  std::array<char, 8>& m_payload;
 };

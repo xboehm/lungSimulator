@@ -5,12 +5,15 @@
 #include "sine6.hpp"
 #include <cstdio>
 #include <cmath>
+#include <charconv>
+#include <cstdlib>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
 	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {
 		std::copy(pattern::sineSix.begin(), pattern::sineSix.end(), m_breathingPattern.data.begin());
 		m_breathingPattern.length = pattern::sineSix.size();
+		m_breathingPattern.frequency = 6;
 		m_step = 1.0;	//implement elsewhere!
 		m_endTime = 60000/6;	//specific for sineSix
 }
@@ -24,21 +27,25 @@ Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeD
 
 extern Application& application;
 void Application::loop() {
-	CmdVersion cmdversion{application};
-	CmdBlink cmdblink{application};
-	CmdBreathe cmdbreathe{application};
-	CmdSelect cmdselect{application};
-	CmdPause cmdpause{application};
-	CmdEndpos cmdendpos{application};
-	std::array commands{
-		static_cast<Command*>(&cmdversion),
-		static_cast<Command*>(&cmdblink),
-		static_cast<Command*>(&cmdbreathe),
-		static_cast<Command*>(&cmdselect),
-		static_cast<Command*>(&cmdpause),
-		static_cast<Command*>(&cmdendpos),
-	};
+	std::array<Command*, 8> commands {};
 	Cli cli {commands, m_uart, m_uartSize, application};
+	CmdVersion cmdversion{application};
+	commands.at(0) = &cmdversion;
+	CmdBlink cmdblink{application};
+	commands.at(1)  = &cmdblink;
+	CmdBreathe cmdbreathe{application};
+	commands.at(2) = &cmdbreathe;
+	CmdSelect cmdselect{application};
+	commands.at(3) = &cmdselect;
+	CmdPause cmdpause{application};
+	commands.at(4) = &cmdpause;
+	CmdEndpos cmdendpos{application};
+	commands.at(5) = &cmdendpos;
+	CmdFreq cmdfreq{application, cli.getPayload()};
+	commands.at(6) = &cmdfreq;
+	CmdVolume cmdvolume {application, cli.getPayload()};
+	commands.at(7) = &cmdvolume;
+
 	bool menuFirstEntry {true};
 	PID pid {120.0f, 0.0f, 0.0f, 0.1f, -999, 999, -200.0f, 200.0f, 0.001f};
 	std::size_t sample {0};
@@ -47,7 +54,7 @@ void Application::loop() {
 	unsigned short time {0};
 	float position {0.0f};
 	char buf[20] {};
-	int glidingSampleRoundedDown {0};
+	unsigned int glidingSampleRoundedDown {0};
 	float glidingSample {0.0f};
 	float interpolPosition {m_breathingPattern.data[0]};
 
@@ -109,7 +116,7 @@ void Application::loop() {
 					if(time > sample*10){
 					            ++sample;
 					            glidingSample = sample * m_step;
-					            glidingSampleRoundedDown = static_cast<int>(glidingSample);
+					            glidingSampleRoundedDown = static_cast<unsigned int>(glidingSample);
 					            if(glidingSampleRoundedDown >= m_breathingPattern.length-1){
 					            	interpolPosition = m_breathingPattern.data[m_breathingPattern.length-1];
 					                break;
@@ -143,6 +150,12 @@ void Application::loop() {
 						time = 1;
 						sample = 0;
 						++m_breathCounter;
+						if(m_freqChange){
+							//set requested freq from external command
+							m_endTime = 60000/m_requestedFreq;
+							m_step = m_requestedFreq / m_breathingPattern.frequency;
+							m_freqChange = false;
+						}
 					}
 					else{
 						++time;
@@ -361,8 +374,8 @@ void Application::CLIselect() {
 		}
 	}
 	m_breathCounter = 0;
-	m_step = m_requested_freq / m_breathingPattern.frequency;
-	m_endTime = 60000 / m_requested_freq;
+	m_step = m_requestedFreq / m_breathingPattern.frequency;
+	m_endTime = 60000 / m_requestedFreq;
 	buffer[1] = '\n';
 	m_uart.send(std::as_bytes(std::span{"Successfully switched to  number "}));
 	m_uart.send(std::as_bytes(std::span{buffer, 2}));
@@ -372,4 +385,25 @@ void Application::CLIpause() {
 	m_motor.stop();
 	m_currentState = State::menu;
 	//menu first entry = true;
+}
+
+void Application::CLIfreq(std::array<char, 8>& payload){
+	float newFreq {static_cast<float>(std::atof(payload.data()))};		//alternative to std::from_chars() until it is supported for floating point types
+	if(newFreq>=6.0f && newFreq<=25.0f){
+		m_requestedFreq = newFreq;
+		m_freqChange = true;
+//		m_endTime = 60000/m_requested_freq;
+//		m_step = m_requested_freq / m_breathingPattern.frequency;
+	}
+	else{
+		m_uart.send(std::as_bytes(std::span{"Requested frequency out of range. "}));
+	}
+	//	std::from_chars(payload.data(), payload.data()+payload.size(), m_requested_freq);	//won't work with floating points as of "GNU Tools for STM32 (11.3.rel1)"
+//    std::cout << "Frequency changed to " << newFreq << '\n';
+
+}
+
+void Application::CLIvolume(std::array<char, 8>& payload){
+    std::from_chars(payload.data(), payload.data()+payload.size(), m_requested_Volume);
+//    std::cout << "Volume changed to " << newVolume/1000.0 << '\n';
 }

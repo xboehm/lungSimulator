@@ -33,6 +33,8 @@ public:
 	void CLIbreathe();
 	void CLIselect();
 	void CLIpause();
+	void CLIfreq(std::array<char, 8>& payload);
+	void CLIvolume(std::array<char, 8>& payload);
 
 	enum class State{
 		init,
@@ -51,9 +53,11 @@ private:
 	State m_currentState {State::init};
 	BreathingPattern m_breathingPattern {};
 	int m_breathCounter {0};
-	float m_requested_freq {6.0f};
+	bool m_freqChange {false};
+	float m_requestedFreq {6};
 	float m_step {0.0f};
 	int m_endTime {0};
+	int m_requested_Volume {0};
 	float m_calcPosition(uint16_t adc);
 
 public:
