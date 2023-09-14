@@ -62,18 +62,27 @@ private:
 
 class CmdFreq : public Command{
 public:
-  CmdFreq(Application& app, std::array<char, 8>& payload);
+  CmdFreq(Application& app, std::array<char, 10>& payload);
   void execute() override;
 private:
   Application& m_app;
-  std::array<char, 8>& m_payload;
+  std::array<char, 10>& m_payload;
 };
 
-class CmdVolume : public Command{
+class CmdVol : public Command{
 public:
-  CmdVolume(Application& app, std::array<char, 8>& payload);
+  CmdVol(Application& app, std::array<char, 10>& payload);
   void execute() override;
 private:
   Application& m_app;
-  std::array<char, 8>& m_payload;
+  std::array<char, 10>& m_payload;
+};
+
+class CmdChange : public Command{
+public:
+	CmdChange(Application& app, std::array<char, 10>& payload);
+	void execute() override;
+private:
+	Application& m_app;
+	std::array<char, 10>& m_payload;
 };

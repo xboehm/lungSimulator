@@ -45,16 +45,23 @@ void CmdEndpos::execute() {
 	m_app.m_getEndPositions();
 }
 
-CmdFreq::CmdFreq(Application& app, std::array<char, 8>& payload)
+CmdFreq::CmdFreq(Application& app, std::array<char, 10>& payload)
     : Command("freq", "Scale pattern to different breathing frequency"), m_app(app), m_payload(payload) {}
 
 void CmdFreq::execute() {
     m_app.CLIfreq(m_payload);
 }
 
-CmdVolume::CmdVolume(Application& app, std::array<char, 8>& payload)
-    : Command("volume", "Scale pattern to different volume"), m_app(app), m_payload(payload) {}
+CmdVol::CmdVol(Application& app, std::array<char, 10>& payload)
+    : Command("vol", "Scale pattern to different volume"), m_app(app), m_payload(payload) {}
 
-void CmdVolume::execute() {
-    m_app.CLIvolume(m_payload);
+void CmdVol::execute() {
+    m_app.CLIvol(m_payload);
+}
+
+CmdChange::CmdChange(Application& app, std::array<char, 10>& payload)
+	: Command("change", "Change the cylinder of the simulator"), m_app(app), m_payload(payload) {}
+
+void CmdChange::execute() {
+	m_app.CLIchange(m_payload);
 }

@@ -2,7 +2,7 @@
 #include "Cli.hpp"
 #include "Command.hpp"
 #include "Pid.hpp"
-#include "sine6.hpp"
+#include "sine6V.hpp"
 #include <cstdio>
 #include <cmath>
 #include <charconv>
@@ -11,11 +11,12 @@
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
 	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {
-		std::copy(pattern::sineSix.begin(), pattern::sineSix.end(), m_breathingPattern.data.begin());
-		m_breathingPattern.length = pattern::sineSix.size();
+		std::copy(pattern::sineSixV.begin(), pattern::sineSixV.end(), m_breathingPattern.data.begin());
+		m_breathingPattern.length = pattern::sineSixV.size();
 		m_breathingPattern.frequency = 6;
+		m_breathingPattern.volume = 600;
 		m_step = 1.0;	//implement elsewhere!
-		m_endTime = 60000/6;	//specific for sineSix
+		m_endTime = 60000/6;	//specific for sineSixV
 }
 
 Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
@@ -27,7 +28,7 @@ Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeD
 
 extern Application& application;
 void Application::loop() {
-	std::array<Command*, 8> commands {};
+	std::array<Command*, 9> commands {};
 	Cli cli {commands, m_uart, m_uartSize, application};
 	CmdVersion cmdversion{application};
 	commands.at(0) = &cmdversion;
@@ -43,8 +44,10 @@ void Application::loop() {
 	commands.at(5) = &cmdendpos;
 	CmdFreq cmdfreq{application, cli.getPayload()};
 	commands.at(6) = &cmdfreq;
-	CmdVolume cmdvolume {application, cli.getPayload()};
-	commands.at(7) = &cmdvolume;
+	CmdVol cmdvol {application, cli.getPayload()};
+	commands.at(7) = &cmdvol;
+	CmdChange cmdchange {application, cli.getPayload()};
+	commands.at(8) = &cmdchange;
 
 	bool menuFirstEntry {true};
 	PID pid {120.0f, 0.0f, 0.0f, 0.1f, -999, 999, -200.0f, 200.0f, 0.001f};
@@ -126,7 +129,7 @@ void Application::loop() {
 					            }
 					        }
 					//calculate control update
-					speed = pid.update(interpolPosition, position);
+					speed = pid.update((interpolPosition*m_positionFactor*m_volFactor)+25, position);
 					//direction logic
 					if(speed < 0) {
 						m_motor.reverse();
@@ -150,11 +153,13 @@ void Application::loop() {
 						time = 1;
 						sample = 0;
 						++m_breathCounter;
-						if(m_freqChange){
+						if(m_paramChange){
 							//set requested freq from external command
 							m_endTime = 60000/m_requestedFreq;
 							m_step = m_requestedFreq / m_breathingPattern.frequency;
-							m_freqChange = false;
+							//set requested volume form external command
+							m_volFactor = static_cast<float>(m_requestedVolume)/m_breathingPattern.volume;
+							m_paramChange = false;
 						}
 					}
 					else{
@@ -343,7 +348,7 @@ void Application::CLIbreathe() {
 void Application::CLIselect() {
 	m_uart.send(std::as_bytes(std::span{"The following patterns are available:\n"}));
 	m_uart.send(std::as_bytes(std::span{"0: Abort\n"}));
-	m_uart.send(std::as_bytes(std::span{"1: Sine6\n"}));
+	m_uart.send(std::as_bytes(std::span{"1: Sine6V\n"}));
 
 	uint8_t buffer[5] {};
 	bool found {false};
@@ -361,12 +366,12 @@ void Application::CLIselect() {
 				m_uart.send(std::as_bytes(std::span{"Aborted\n"}));
 				return;
 			case '1':
-				std::copy(pattern::sineSix.begin(), pattern::sineSix.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::sineSix.size();
+				std::copy(pattern::sineSixV.begin(), pattern::sineSixV.end(), m_breathingPattern.data.begin());
+				m_breathingPattern.length = pattern::sineSixV.size();
 				found = true;
 				break;
 			default:
-				m_uart.send(std::as_bytes(std::span{"Please enter a vaild number\n"}));
+				m_uart.send(std::as_bytes(std::span{"Please enter a valid number\n"}));
 				for(std::size_t i{0}; i < std::size(buffer); ++i) {
 					buffer[i] = '\0';
 				}
@@ -387,11 +392,11 @@ void Application::CLIpause() {
 	//menu first entry = true;
 }
 
-void Application::CLIfreq(std::array<char, 8>& payload){
+void Application::CLIfreq(std::array<char, 10>& payload){
 	float newFreq {static_cast<float>(std::atof(payload.data()))};		//alternative to std::from_chars() until it is supported for floating point types
 	if(newFreq>=6.0f && newFreq<=25.0f){
 		m_requestedFreq = newFreq;
-		m_freqChange = true;
+		m_paramChange = true;
 //		m_endTime = 60000/m_requested_freq;
 //		m_step = m_requested_freq / m_breathingPattern.frequency;
 	}
@@ -403,7 +408,38 @@ void Application::CLIfreq(std::array<char, 8>& payload){
 
 }
 
-void Application::CLIvolume(std::array<char, 8>& payload){
-    std::from_chars(payload.data(), payload.data()+payload.size(), m_requested_Volume);
-//    std::cout << "Volume changed to " << newVolume/1000.0 << '\n';
+void Application::CLIvol(std::array<char, 10>& payload){
+	int newVol {};
+    std::from_chars(payload.begin(), payload.end(), newVol);
+    if(newVol>=0 && newVol<=static_cast<int>(0.92*m_cylVolume)){
+    	m_requestedVolume = newVol;
+    	char buffer[5] {};
+		std::to_chars(&buffer[0], &buffer[std::size(buffer)], newVol);
+    	m_uart.send(std::as_bytes(std::span{"Breath volume changed to "}));
+    	m_uart.send(std::as_bytes(std::span{buffer}));
+    	m_paramChange = true;
+    }
+    else{
+    		m_uart.send(std::as_bytes(std::span{"Requested volume out of range. "}));
+    	}
+}
+
+void Application::CLIchange(std::array<char, 10>& payload){
+	int radius {};
+	int length {};
+	auto hyphenPos {std::find(payload.begin(), payload.end(), '-')};
+	std::from_chars(payload.begin(), payload.end(), radius);
+	std::from_chars(hyphenPos+1, payload.end(), length);
+	m_positionFactor = 1000/(3.141592f*radius*radius);
+	m_cylVolume = (3.141592f*radius*radius*length)/1000;
+
+//	std::array<char, 5> buffer {};
+//	std::to_chars(buffer.begin(), buffer.end(), radius);
+//	m_uart.send(std::as_bytes(std::span{"Radius changed to "}));
+//	m_uart.send(std::as_bytes(std::span{buffer}));
+//	buffer.fill(0);
+//	std::to_chars(buffer.begin(), buffer.end(), length);
+//	m_uart.send(std::as_bytes(std::span{"Length changed to "}));
+//	m_uart.send(std::as_bytes(std::span{buffer}));
+
 }

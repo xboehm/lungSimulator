@@ -21,12 +21,12 @@ private:
 	Application& m_application;
 	uint8_t m_rxBuf[constants::RxBufSize] {};
 	char m_readBuf[constants::RxBufSize] {};
-	std::array<char, 8> m_payload {};
+	std::array<char, 10> m_payload {};
 	bool m_cmdFound {false};
 
 
 public:
-	std::array<char, 8>& getPayload(){
+	std::array<char, 10>& getPayload(){
 	    return m_payload;
 	  }
 
