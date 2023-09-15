@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Application.hpp"
+#include "CustomTypes.hpp"
 #include <string_view>
 
 //class Application;
@@ -62,27 +63,27 @@ private:
 
 class CmdFreq : public Command{
 public:
-  CmdFreq(Application& app, std::array<char, 10>& payload);
+  CmdFreq(Application& app, CommandPayload& payload);
   void execute() override;
 private:
   Application& m_app;
-  std::array<char, 10>& m_payload;
+  CommandPayload& m_payload;
 };
 
 class CmdVol : public Command{
 public:
-  CmdVol(Application& app, std::array<char, 10>& payload);
+  CmdVol(Application& app, CommandPayload& payload);
   void execute() override;
 private:
   Application& m_app;
-  std::array<char, 10>& m_payload;
+  CommandPayload& m_payload;
 };
 
 class CmdChange : public Command{
 public:
-	CmdChange(Application& app, std::array<char, 10>& payload);
+	CmdChange(Application& app, CommandPayload& payload);
 	void execute() override;
 private:
 	Application& m_app;
-	std::array<char, 10>& m_payload;
+	CommandPayload& m_payload;
 };

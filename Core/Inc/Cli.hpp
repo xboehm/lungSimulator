@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GlobalConf.hpp"
+#include "CustomTypes.hpp"
 #include "Command.hpp"
 #include "Application.hpp"
 #include "Uart.hpp"
@@ -21,12 +22,12 @@ private:
 	Application& m_application;
 	uint8_t m_rxBuf[constants::RxBufSize] {};
 	char m_readBuf[constants::RxBufSize] {};
-	std::array<char, 10> m_payload {};
+	CommandPayload m_payload {};
 	bool m_cmdFound {false};
 
 
 public:
-	std::array<char, 10>& getPayload(){
+	CommandPayload& getPayload(){
 	    return m_payload;
 	  }
 

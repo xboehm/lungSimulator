@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CustomTypes.hpp"
 #include "Pinout.hpp"
 #include "Uart.hpp"
 #include "Adc.hpp"
@@ -33,9 +34,9 @@ public:
 	void CLIbreathe();
 	void CLIselect();
 	void CLIpause();
-	void CLIfreq(std::array<char, 10>& payload);
-	void CLIvol(std::array<char, 10>& payload);
-	void CLIchange(std::array<char, 10>& payload);
+	void CLIfreq(CommandPayload& payload);
+	void CLIvol(CommandPayload& payload);
+	void CLIchange(CommandPayload& payload);
 
 	enum class State{
 		init,

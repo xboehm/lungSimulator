@@ -392,7 +392,7 @@ void Application::CLIpause() {
 	//menu first entry = true;
 }
 
-void Application::CLIfreq(std::array<char, 10>& payload){
+void Application::CLIfreq(CommandPayload& payload){
 	float newFreq {static_cast<float>(std::atof(payload.data()))};		//alternative to std::from_chars() until it is supported for floating point types
 	if(newFreq>=6.0f && newFreq<=25.0f){
 		m_requestedFreq = newFreq;
@@ -408,7 +408,7 @@ void Application::CLIfreq(std::array<char, 10>& payload){
 
 }
 
-void Application::CLIvol(std::array<char, 10>& payload){
+void Application::CLIvol(CommandPayload& payload){
 	int newVol {};
     std::from_chars(payload.begin(), payload.end(), newVol);
     if(newVol>=0 && newVol<=static_cast<int>(0.92*m_cylVolume)){
@@ -424,7 +424,7 @@ void Application::CLIvol(std::array<char, 10>& payload){
     	}
 }
 
-void Application::CLIchange(std::array<char, 10>& payload){
+void Application::CLIchange(CommandPayload& payload){
 	int radius {};
 	int length {};
 	auto hyphenPos {std::find(payload.begin(), payload.end(), '-')};
