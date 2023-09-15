@@ -1,4 +1,5 @@
 #include "Application.hpp"
+#include "GlobalConf.hpp"
 #include "Cli.hpp"
 #include "Command.hpp"
 #include "Pid.hpp"
@@ -287,7 +288,7 @@ void Application::m_moveEndToEnd(int speed, unsigned int lowerEnd, unsigned int 
 
 //at the right end of cylinder function returns 10mm
 float Application::m_calcPosition(uint16_t adc) {
-	return adc*constants::lsbLength-13.23737f;
+	return adc*constants::LsbLength-13.23737f;
 }
 
 void Application::m_stopMotor() {
@@ -394,7 +395,7 @@ void Application::CLIpause() {
 
 void Application::CLIfreq(CommandPayload& payload){
 	float newFreq {static_cast<float>(std::atof(payload.data()))};		//alternative to std::from_chars() until it is supported for floating point types
-	if(newFreq>=6.0f && newFreq<=25.0f){
+	if(newFreq >= constants::MinimalFreq && newFreq <= constants::MaximalFreq){
 		m_requestedFreq = newFreq;
 		m_paramChange = true;
 //		m_endTime = 60000/m_requested_freq;
@@ -430,8 +431,8 @@ void Application::CLIchange(CommandPayload& payload){
 	auto hyphenPos {std::find(payload.begin(), payload.end(), '-')};
 	std::from_chars(payload.begin(), payload.end(), radius);
 	std::from_chars(hyphenPos+1, payload.end(), length);
-	m_positionFactor = 1000/(3.141592f*radius*radius);
-	m_cylVolume = (3.141592f*radius*radius*length)/1000;
+	m_positionFactor = 1000/(constants::Pi*radius*radius);
+	m_cylVolume = (constants::Pi*radius*radius*length)/1000;
 
 //	std::array<char, 5> buffer {};
 //	std::to_chars(buffer.begin(), buffer.end(), radius);
