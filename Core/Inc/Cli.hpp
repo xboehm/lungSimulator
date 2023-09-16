@@ -12,13 +12,13 @@
 template<std::size_t N>
 class Cli{
 public:
-	Cli(std::array<Command*, N>& commands, Uart& uart, uint16_t& uartSize, Application& appl)
+	Cli(std::array<Command*, N>& commands, Uart& uart, volatile uint16_t& uartSize, Application& appl)
 	        : m_commands(commands), m_uart(uart), m_uartSize(uartSize), m_application(appl) {}
 
 private:
 	std::array<Command*, N>& m_commands;
 	Uart& m_uart;
-	uint16_t& m_uartSize;
+	volatile uint16_t& m_uartSize;
 	Application& m_application;
 	uint8_t m_rxBuf[constants::RxBufSize] {};
 	char m_readBuf[constants::RxBufSize] {};

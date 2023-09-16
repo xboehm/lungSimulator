@@ -67,9 +67,9 @@ private:
 	float m_calcPosition(uint16_t adc);
 
 public:
-	bool m_endFlag {false};
-	bool m_adcComplete {false};
-	bool m_uartComplete {false};
-	bool m_regTimer {false};
-	uint16_t m_uartSize {0};
+	volatile bool m_endFlag {false};
+	volatile bool m_adcComplete {false};
+	volatile bool m_uartComplete {false};
+	volatile bool m_regTimer {false};
+	volatile uint16_t m_uartSize {0};
 };
