@@ -10,7 +10,7 @@
 #include <array>
 #include <charconv>
 #include <string_view>
-#include <algorithm>
+
 
 class Application{
 public:
@@ -28,6 +28,7 @@ public:
 	void m_stopMotor();
 	void m_getEndPositions();
 	void m_toggleTimerPin();
+	void m_copyPattern(std::span<const float> data);
 
 	void CLIversion();
 	void CLIblink();
@@ -57,7 +58,7 @@ private:
 	int m_breathCounter {0};
 	bool m_paramChange {false};
 	float m_requestedFreq {6};
-	float m_step {0.0f};
+	float m_step {1.0f};
 	int m_endTime {0};
 	int m_requestedVolume {0};
 	float m_volFactor {1};

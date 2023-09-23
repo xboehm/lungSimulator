@@ -8,16 +8,12 @@
 #include <cmath>
 #include <charconv>
 #include <cstdlib>
+#include <algorithm>
 
 Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
 													TIM_HandleTypeDef* TIMhandle)
 	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {
-		std::copy(pattern::sineSixV.begin(), pattern::sineSixV.end(), m_breathingPattern.data.begin());
-		m_breathingPattern.length = pattern::sineSixV.size();
-		m_breathingPattern.frequency = 6;
-		m_breathingPattern.volume = 600;
-		m_step = 1.0;	//implement elsewhere!
-		m_endTime = 60000/6;	//specific for sineSixV
+		m_copyPattern(pattern::sineSixV);
 }
 
 Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
@@ -154,6 +150,7 @@ void Application::loop() {
 						time = 1;
 						sample = 0;
 						++m_breathCounter;
+						//if breathing parameters got changed by external command
 						if(m_paramChange){
 							//set requested freq from external command
 							m_endTime = 60000/m_requestedFreq;
@@ -331,6 +328,15 @@ void Application::m_toggleTimerPin() {
 	m_pinout.m_timerPin.clear();
 }
 
+void Application::m_copyPattern(std::span<const float> data){
+	std::copy(data.begin(), data.end(), m_breathingPattern.data.begin());
+	m_breathingPattern.length = data.size();	//watch it!
+	m_breathingPattern.frequency = 6000.0/(data.size()-1);
+	auto minmax {std::minmax_element(data.begin(), data.end())};
+	m_breathingPattern.volume = static_cast<int>(*minmax.second - *minmax.first);
+	m_endTime = (data.size()-1)*10;
+}
+
 void Application::CLIversion()  {
 	m_uart.send(std::as_bytes(std::span{"Version: 0.1\r\n"}));
 }
@@ -367,8 +373,7 @@ void Application::CLIselect() {
 				m_uart.send(std::as_bytes(std::span{"Aborted\n"}));
 				return;
 			case '1':
-				std::copy(pattern::sineSixV.begin(), pattern::sineSixV.end(), m_breathingPattern.data.begin());
-				m_breathingPattern.length = pattern::sineSixV.size();
+				m_copyPattern(pattern::sineSixV);
 				found = true;
 				break;
 			default:
