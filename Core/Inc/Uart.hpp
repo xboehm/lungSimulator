@@ -15,7 +15,11 @@ public:
 	void receiveIT(uint8_t* buf, uint16_t size);
 	void receiveToIdleDMA(uint8_t* buf, uint16_t size);
 
+
 private:
 	UART_HandleTypeDef* m_handle;
 	DMA_HandleTypeDef* m_dma;
 };
+
+Uart& operator<< (Uart& out, const int number);
+Uart& operator<< (Uart& out, const float number);

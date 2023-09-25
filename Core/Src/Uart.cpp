@@ -1,4 +1,5 @@
 #include "Uart.hpp"
+#include "charconv"
 
 Uart::Uart(UART_HandleTypeDef* handle, DMA_HandleTypeDef* dma)
 	: m_handle {handle}, m_dma {dma}
@@ -25,4 +26,22 @@ void Uart::receiveToIdleDMA(uint8_t* buf, uint16_t size){
 	HAL_UARTEx_ReceiveToIdle_DMA(m_handle, buf, size);
 	//interrupt for half transfer complete must be disabled every single time
 	__HAL_DMA_DISABLE_IT(m_dma, DMA_IT_HT);
+}
+
+Uart& operator<< (Uart& out, const int number){
+	char buf[10] {};
+	auto result {std::to_chars(buf, &buf[std::size(buf)], number)};
+	if(result.ec == std::errc()){
+		out.send(std::as_bytes(std::span{buf, result.ptr}));
+	}
+	return out;
+}
+
+Uart& operator<< (Uart& out, const float number){
+	char buf[10] {};
+	auto result {std::to_chars(buf, &buf[std::size(buf)], number)};
+	if(result.ec == std::errc()){
+			out.send(std::as_bytes(std::span{buf, result.ptr}));
+	}
+	return out;
 }
