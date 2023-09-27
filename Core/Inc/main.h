@@ -70,12 +70,12 @@ void Error_Handler(void);
 #define USART_RX_GPIO_Port GPIOA
 #define LD4_Pin GPIO_PIN_13
 #define LD4_GPIO_Port GPIOB
-#define endO_Pin GPIO_PIN_14
-#define endO_GPIO_Port GPIOB
-#define endO_EXTI_IRQn EXTI15_10_IRQn
-#define endC_Pin GPIO_PIN_15
+#define endC_Pin GPIO_PIN_14
 #define endC_GPIO_Port GPIOB
 #define endC_EXTI_IRQn EXTI15_10_IRQn
+#define endO_Pin GPIO_PIN_15
+#define endO_GPIO_Port GPIOB
+#define endO_EXTI_IRQn EXTI15_10_IRQn
 #define PWM_Pin GPIO_PIN_8
 #define PWM_GPIO_Port GPIOA
 #define TimerPin_Pin GPIO_PIN_10
