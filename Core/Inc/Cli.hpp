@@ -32,8 +32,7 @@ public:
 	  }
 
 	void listen()  {
-		 m_uart.send(std::as_bytes(std::span{"<Enter command> "}));
-		 m_uart.send(std::as_bytes(std::span{m_application.m_printState()}));
+		 m_uart << "<Enter command> " << m_application.m_printState() << '\n';
 		 m_uart.receiveToIdleDMA(m_rxBuf, std::size(m_rxBuf));
 	}
 
@@ -46,13 +45,9 @@ public:
 		//'help macro' prints all available commands with their description
 		if(input == "help"){
 			m_cmdFound = true;
-			m_uart.send(std::as_bytes(std::span{"Available commands:\r\n"}));
+			m_uart << "Available commands:\n";
 			for(auto cmd: m_commands) {
-				m_uart.send(std::as_bytes(std::span{"Name: "}));
-				m_uart.send(std::as_bytes(std::span{cmd->name}));
-				m_uart.send(std::as_bytes(std::span{" ("}));
-				m_uart.send(std::as_bytes(std::span{cmd->help}));
-				m_uart.send(std::as_bytes(std::span{")\r\n"}));
+				m_uart << "Name: " << cmd->name << " (" << cmd->help << ")\n";
 			}
 		}
 		else{
@@ -72,7 +67,7 @@ public:
 			}
 		}
 		if(!m_cmdFound) {
-			m_uart.send(std::as_bytes(std::span{"Command not found.\r\n"}));
+			m_uart << "Command not found.\n";
 		}
 		else {
 			m_cmdFound = false;

@@ -64,6 +64,8 @@ void Application::loop() {
 			case(State::init):
 			{
 					menuFirstEntry = true;
+//					char testC {'c'};
+//					m_uart << "Hello world! " << 69  << 'a' << "b" << testC << 555 << '\n';
 /*
 				if(init.done()){
 					//critical section start
@@ -141,7 +143,7 @@ void Application::loop() {
 					if(constants::LogPID) {
 						if(m_breathCounter < 3) {
 							std::snprintf(buf, std::size(buf), "%6.2f,%6.2f,%+4i\n", interpolPosition, position, speed);
-							m_uart.send1(buf, 19);
+							m_uart << std::span(&buf[0], 19);
 						}
 					}
 
@@ -217,14 +219,9 @@ std::string_view Application::m_printState() const {
 
 void Application::m_printADCloop(int delay) {
 	uint32_t raw {};
-	std::array<char, 6> output {};
 	while(1) {
 		raw = m_adc.readSinglePoll();
-		std::to_chars(output.data(), output.data()+output.size(), raw);
-		output.at(4) = '\r';
-		output.at(5) = '\n';
-		m_uart.send(std::as_bytes(std::span{output}));
-		output.fill(0);
+		m_uart << raw << '\n';
 		HAL_Delay(delay);
 	}
 }
@@ -232,29 +229,14 @@ void Application::m_printADCloop(int delay) {
 void Application::m_readADCbuffer() {
 	std::array<uint32_t, constants::ADCreads> buffer {};
 	m_adc.readSingleLoop(2U, buffer);
-	std::array<char, 6> output {};
 	for(auto element: buffer){
-		std::to_chars(output.data(), output.data()+output.size(), element);
-		output.at(4) = '\r';
-		output.at(5) = '\n';
-		m_uart.send(std::as_bytes(std::span{output}));
-		output.fill(0);
+		m_uart << element << '\n';
 	}
 }
 
 void Application::m_buttonTest(){
-	int blue {};
-	int end {};
-	std::array<char, 5> sendBuf {};
 	while(1) {
-		blue = m_pinout.m_blueButton.read();
-		end = m_pinout.m_endC.read();
-		std::to_chars(sendBuf.data(), sendBuf.data()+1, blue);
-		std::to_chars(sendBuf.data()+1, sendBuf.data()+2, end);
-		sendBuf.at(3) = '\r';
-		sendBuf.at(4) = '\n';
-		m_uart.send(std::as_bytes(std::span{sendBuf}));
-		sendBuf.fill(0);
+		m_uart << m_pinout.m_blueButton.read() << ' ' << m_pinout.m_endO.read() << ' ' << m_pinout.m_endC.read() << '\n';
 		HAL_Delay(500);
 	}
 }
@@ -294,12 +276,11 @@ void Application::m_stopMotor() {
 
 void Application::m_getEndPositions() {
 	m_motor.reverse();
-	m_motor.setSpeed(420);
+	m_motor.setSpeed(380);
 	//wait for end detection;
 	while(!m_endFlag){
 		//no optimization!
 	}
-//	m_motor.stop();
 	uint32_t endPosClosed {m_adc.readSinglePoll()};
 	HAL_Delay(10);
 	m_motor.forward();
@@ -309,19 +290,13 @@ void Application::m_getEndPositions() {
 	while(!m_endFlag){
 		//no optimization!
 	}
-//	m_motor.stop();
 	uint32_t endPosOpen {m_adc.readSinglePoll()};
 	HAL_Delay(10);
 	m_motor.reverse();
 	HAL_Delay(300);
 	m_motor.stop();
 	m_endFlag = false;
-	char buf[12] {};
-	auto buflength {std::snprintf(buf, std::size(buf), "%lu, %lu\n", endPosClosed, endPosOpen)};
-	if(buflength > 0) {
-		m_uart.send(std::as_bytes(std::span{"Endpositions: "}));
-		m_uart.send(std::as_bytes(std::span{buf, static_cast<unsigned int>(buflength)}));
-	}
+	m_uart << "Endpositions: " << endPosClosed <<  ", " << endPosOpen << '\n';
 }
 
 void Application::m_toggleTimerPin() {
@@ -338,7 +313,7 @@ void Application::m_copyPattern(std::span<const float> data){
 }
 
 void Application::CLIversion()  {
-	m_uart.send(std::as_bytes(std::span{"Version: 0.1\r\n"}));
+	m_uart << "Version: 1.0\n";
 }
 
 void Application::CLIblink()  {
@@ -353,9 +328,9 @@ void Application::CLIbreathe() {
 }
 
 void Application::CLIselect() {
-	m_uart.send(std::as_bytes(std::span{"The following patterns are available:\n"}));
-	m_uart.send(std::as_bytes(std::span{"0: Abort\n"}));
-	m_uart.send(std::as_bytes(std::span{"1: Sine6V\n"}));
+	m_uart << "The following patterns are available:\n";
+	m_uart << "0: Abort\n";
+	m_uart << "1: Sine6V\n";
 
 	uint8_t buffer[5] {};
 	bool found {false};
@@ -370,14 +345,14 @@ void Application::CLIselect() {
 		m_uartComplete = false;
 		switch(buffer[0]) {
 			case '0':
-				m_uart.send(std::as_bytes(std::span{"Aborted\n"}));
+				m_uart << "Aborted\n";
 				return;
 			case '1':
 				m_copyPattern(pattern::sineSixV);
 				found = true;
 				break;
 			default:
-				m_uart.send(std::as_bytes(std::span{"Please enter a valid number\n"}));
+				m_uart << "Please enter a valid number\n";
 				for(std::size_t i{0}; i < std::size(buffer); ++i) {
 					buffer[i] = '\0';
 				}
@@ -387,9 +362,8 @@ void Application::CLIselect() {
 	m_breathCounter = 0;
 	m_step = m_requestedFreq / m_breathingPattern.frequency;
 	m_endTime = 60000 / m_requestedFreq;
-	buffer[1] = '\n';
-	m_uart.send(std::as_bytes(std::span{"Successfully switched to  number "}));
-	m_uart.send(std::as_bytes(std::span{buffer, 2}));
+	m_uart << "Successfully switched to  number " << static_cast<char>(buffer[0]) << '\n';
+//	m_uart << std::span(reinterpret_cast<char*>(&buffer[0]), 2);
 }
 
 void Application::CLIpause() {
@@ -403,14 +377,11 @@ void Application::CLIfreq(CommandPayload& payload){
 	if(newFreq >= constants::MinimalFreq && newFreq <= constants::MaximalFreq){
 		m_requestedFreq = newFreq;
 		m_paramChange = true;
-//		m_endTime = 60000/m_requested_freq;
-//		m_step = m_requested_freq / m_breathingPattern.frequency;
 	}
 	else{
-		m_uart.send(std::as_bytes(std::span{"Requested frequency out of range. "}));
+		m_uart << "Requested frequency out of range.";
 	}
 	//	std::from_chars(payload.data(), payload.data()+payload.size(), m_requested_freq);	//won't work with floating points as of "GNU Tools for STM32 (11.3.rel1)"
-//    std::cout << "Frequency changed to " << newFreq << '\n';
 
 }
 
@@ -419,14 +390,11 @@ void Application::CLIvol(CommandPayload& payload){
     std::from_chars(payload.begin(), payload.end(), newVol);
     if(newVol>=0 && newVol<=static_cast<int>(0.92*m_cylVolume)){
     	m_requestedVolume = newVol;
-    	char buffer[5] {};
-		std::to_chars(&buffer[0], &buffer[std::size(buffer)], newVol);
-    	m_uart.send(std::as_bytes(std::span{"Breath volume changed to "}));
-    	m_uart.send(std::as_bytes(std::span{buffer}));
+    	m_uart << "Breath volume changed to " << newVol << '\n';
     	m_paramChange = true;
     }
     else{
-    		m_uart.send(std::as_bytes(std::span{"Requested volume out of range. "}));
+    		m_uart << "Requested volume out of range.\n";
     	}
 }
 
@@ -438,14 +406,4 @@ void Application::CLIchange(CommandPayload& payload){
 	std::from_chars(hyphenPos+1, payload.end(), length);
 	m_positionFactor = 1000/(constants::Pi*radius*radius);
 	m_cylVolume = (constants::Pi*radius*radius*length)/1000;
-
-//	std::array<char, 5> buffer {};
-//	std::to_chars(buffer.begin(), buffer.end(), radius);
-//	m_uart.send(std::as_bytes(std::span{"Radius changed to "}));
-//	m_uart.send(std::as_bytes(std::span{buffer}));
-//	buffer.fill(0);
-//	std::to_chars(buffer.begin(), buffer.end(), length);
-//	m_uart.send(std::as_bytes(std::span{"Length changed to "}));
-//	m_uart.send(std::as_bytes(std::span{buffer}));
-
 }
