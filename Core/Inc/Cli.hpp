@@ -73,7 +73,9 @@ public:
 			m_cmdFound = false;
 		}
 		//start listening again
-		listen();
+		if(input!="feed"){
+			listen();
+		}
 		//clear buffers
 		for(std::size_t i{0}; i < m_uartSize; ++i) {
 			m_readBuf[i] = '\0';

@@ -10,22 +10,22 @@
 #include <cstdlib>
 #include <algorithm>
 
-Application::Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
-													TIM_HandleTypeDef* TIMhandle)
-	:m_pinout {}, m_uart {uart, dma}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}  {
+Application::Application(DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
+											TIM_HandleTypeDef* TIMhandle, UART_HandleTypeDef*  uart)
+	:m_pinout {}, m_adc {adc}, m_motor {m_pinout.m_dir, TIMhandle}, m_uart {uart, dma} {
 		m_copyPattern(pattern::sineSixV);
 }
 
-Application& Application::getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
-																			ADC_HandleTypeDef* adc, TIM_HandleTypeDef* TIMhandle) {
-	static Application m_instance {uart, dma, adc, TIMhandle};
+Application& Application::getInstance(DMA_HandleTypeDef* dma, 	ADC_HandleTypeDef* adc,
+																	TIM_HandleTypeDef* TIMhandle, UART_HandleTypeDef*  uart) {
+	static Application m_instance {dma, adc, TIMhandle, uart};
 	return m_instance;
 }
 
 
 extern Application& application;
 void Application::loop() {
-	std::array<Command*, 9> commands {};
+	std::array<Command*, 10> commands {};
 	Cli cli {commands, m_uart, m_uartSize, application};
 	CmdVersion cmdversion{application};
 	commands.at(0) = &cmdversion;
@@ -45,6 +45,8 @@ void Application::loop() {
 	commands.at(7) = &cmdvol;
 	CmdChange cmdchange {application, cli.getPayload()};
 	commands.at(8) = &cmdchange;
+	CmdFeed cmdfeed {application};
+	commands.at(9) = &cmdfeed;
 
 	bool menuFirstEntry {true};
 	PID pid {120.0f, 0.0f, 0.0f, 0.1f, -999, 999, -200.0f, 200.0f, 0.001f};
@@ -57,6 +59,8 @@ void Application::loop() {
 	unsigned int glidingSampleRoundedDown {0};
 	float glidingSample {0.0f};
 	float interpolPosition {m_breathingPattern.data[0]};
+	std::size_t ii {0};
+
 
 
 	while(1) {
@@ -148,7 +152,8 @@ void Application::loop() {
 					}
 
 					//logic to start pattern from the beginning if end was reached
-					if(time ==  m_endTime){
+					if(time >=  m_endTime){
+						m_motor.stop();
 						time = 1;
 						sample = 0;
 						++m_breathCounter;
@@ -159,7 +164,13 @@ void Application::loop() {
 							m_step = m_requestedFreq / m_breathingPattern.frequency;
 							//set requested volume form external command
 							m_volFactor = static_cast<float>(m_requestedVolume)/m_breathingPattern.volume;
+							m_breathCounter = 0;
 							m_paramChange = false;
+						}
+						if(m_diffPattern){
+							m_copyPattern(std::span(m_inputPattern.data.begin(), m_inputPattern.length));
+							m_breathCounter = 0;
+							m_diffPattern = false;
 						}
 					}
 					else{
@@ -169,6 +180,24 @@ void Application::loop() {
 
 					//timing Pin
 					m_pinout.m_timerPin.clear();
+				}
+
+				//converting char input from serial to floats and storing it in m_inputPattern
+				if(m_process){
+//					while(!m_regTimer){
+						m_inputPattern.data[ii++] = static_cast<float>(std::atof(reinterpret_cast<char*>(index)));
+						index = std::find(index, patternInput.end(), ';');
+						if(index == patternInput.end()){
+							m_process = false;
+							m_inputPattern.length = ii;
+							m_inpAvail = true;
+							cli.listen();
+//							break;
+						}
+						else{
+							++index;
+						}
+//					}
 				}
 
 				//new command?
@@ -304,12 +333,31 @@ void Application::m_toggleTimerPin() {
 }
 
 void Application::m_copyPattern(std::span<const float> data){
-	std::copy(data.begin(), data.end(), m_breathingPattern.data.begin());
-	m_breathingPattern.length = data.size();	//watch it!
-	m_breathingPattern.frequency = 6000.0/(data.size()-1);
 	auto minmax {std::minmax_element(data.begin(), data.end())};
-	m_breathingPattern.volume = static_cast<int>(*minmax.second - *minmax.first);
-	m_endTime = (data.size()-1)*10;
+	auto newVol {static_cast<int>(*minmax.second - *minmax.first)};
+	if(newVol>=0 && newVol<=static_cast<int>(0.92*m_cylVolume)){
+		 m_breathingPattern.volume = newVol;
+	}
+	else{
+		 m_uart << "Requested volume out of range.\n";
+		 return;
+	 }
+	auto newFreq {6000.0/(data.size()-1)};
+	if(newFreq >= constants::MinimalFreq && newFreq <= constants::MaximalFreq){
+		m_breathingPattern.frequency = newFreq;
+	}
+	else{
+		m_uart << "Requested frequency out of range.\n";
+		return;
+	}
+	 std::copy(data.begin(), data.end(), m_breathingPattern.data.begin());
+	 m_breathingPattern.length = data.size();	//watch it!
+	 m_requestedFreq = m_breathingPattern.frequency;
+	 m_endTime = (data.size()-1)*10;
+	 m_requestedVolume = m_breathingPattern.volume;
+	 m_step = m_requestedFreq / m_breathingPattern.frequency;	  //could also just set it to 1.0
+	 m_volFactor = static_cast<float>(m_requestedVolume)/m_breathingPattern.volume; //could also just set it to 1.0
+	 ++newVol;
 }
 
 void Application::CLIversion()  {
@@ -330,7 +378,11 @@ void Application::CLIbreathe() {
 void Application::CLIselect() {
 	m_uart << "The following patterns are available:\n";
 	m_uart << "0: Abort\n";
-	m_uart << "1: Sine6V\n";
+	if(m_inpAvail){
+			m_uart << "1: Input\n";
+	}
+	m_uart << "2: Sine6V\n";
+
 
 	uint8_t buffer[5] {};
 	bool found {false};
@@ -338,19 +390,32 @@ void Application::CLIselect() {
 	while(!found) {
 		m_uart.receiveToIdleDMA(buffer, std::size(buffer));
 		while(!m_uartComplete) {
-			HAL_Delay(20);
+			HAL_Delay(5);
 			//no optimization!
 		}
-		HAL_Delay(5);
+//		HAL_Delay(5);
 		m_uartComplete = false;
 		switch(buffer[0]) {
 			case '0':
 				m_uart << "Aborted\n";
 				return;
 			case '1':
+				if(m_inpAvail){
+//					m_copyPattern(std::span(m_inputPattern.data.begin(), m_inputPattern.length));
+					m_diffPattern = true;
+					found = true;
+				}
+				else{
+					m_uart << "Please enter a valid number\n";
+					for(std::size_t i{0}; i < std::size(buffer); ++i) {
+						buffer[i] = '\0';
+					}
+				}
+				break;
+			case '2':
 				m_copyPattern(pattern::sineSixV);
 				found = true;
-				break;
+				return;
 			default:
 				m_uart << "Please enter a valid number\n";
 				for(std::size_t i{0}; i < std::size(buffer); ++i) {
@@ -359,11 +424,10 @@ void Application::CLIselect() {
 				break;
 		}
 	}
-	m_breathCounter = 0;
-	m_step = m_requestedFreq / m_breathingPattern.frequency;
-	m_endTime = 60000 / m_requestedFreq;
-	m_uart << "Successfully switched to  number " << static_cast<char>(buffer[0]) << '\n';
-//	m_uart << std::span(reinterpret_cast<char*>(&buffer[0]), 2);
+//	m_breathCounter = 0;
+//	m_step = m_requestedFreq / m_breathingPattern.frequency;
+//	m_endTime = 60000 / m_requestedFreq;
+	m_uart << "Successfully switched to  number " << static_cast<char>(buffer[0]) << " with next breath.\n";
 }
 
 void Application::CLIpause() {
@@ -379,7 +443,7 @@ void Application::CLIfreq(CommandPayload& payload){
 		m_paramChange = true;
 	}
 	else{
-		m_uart << "Requested frequency out of range.";
+		m_uart << "Requested frequency out of range.\n";
 	}
 	//	std::from_chars(payload.data(), payload.data()+payload.size(), m_requested_freq);	//won't work with floating points as of "GNU Tools for STM32 (11.3.rel1)"
 
@@ -406,4 +470,12 @@ void Application::CLIchange(CommandPayload& payload){
 	std::from_chars(hyphenPos+1, payload.end(), length);
 	m_positionFactor = 1000/(constants::Pi*radius*radius);
 	m_cylVolume = (constants::Pi*radius*radius*length)/1000;
+}
+
+void Application::CLIfeed() {
+	m_uart << "Hungry now.\n";
+	m_uart.receiveDMA(index, 1);
+//	m_feed = true;
+
+//	m_uart.abortRx();
 }

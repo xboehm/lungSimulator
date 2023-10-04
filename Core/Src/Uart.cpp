@@ -36,6 +36,16 @@ void Uart::receiveToIdleDMA(uint8_t* buf, uint16_t size){
 	__HAL_DMA_DISABLE_IT(m_dma, DMA_IT_HT);
 }
 
+void Uart::receiveDMA(uint8_t* buf, uint16_t size){
+	HAL_UART_Receive_DMA(m_handle, buf, size);
+	//interrupt for half transfer complete must be disabled every single time
+	__HAL_DMA_DISABLE_IT(m_dma, DMA_IT_HT);
+}
+
+void Uart::abortRx() {
+	HAL_UART_AbortReceive(m_handle);
+}
+
 Uart& operator<< (Uart& out, const int number){
 	char buf[10] {};
 	auto result {std::to_chars(buf, &buf[std::size(buf)], number)};

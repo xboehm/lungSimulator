@@ -1,9 +1,10 @@
 #pragma once
 
 #include "stm32l4xx_hal.h"
+#include <inttypes.h>
 #include <span>
-#include <cstddef>
 #include <string_view>
+#include <cstddef>
 
 class Uart{
 public:
@@ -17,6 +18,8 @@ public:
 	void receive(uint8_t* buf, uint16_t size);
 	void receiveIT(uint8_t* buf, uint16_t size);
 	void receiveToIdleDMA(uint8_t* buf, uint16_t size);
+	void receiveDMA(uint8_t* buf, uint16_t size);
+	void abortRx();
 
 
 private:

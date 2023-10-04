@@ -55,7 +55,7 @@ DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
 
 /* USER CODE BEGIN PV */
-Application&  application {Application::getInstance(&huart2, &hdma_usart2_rx, &hadc1, &htim1)};
+Application&  application {Application::getInstance(&hdma_usart2_rx, &hadc1, &htim1, &huart2)};
 
 /* USER CODE END PV */
 
@@ -488,6 +488,20 @@ extern "C" {
 	void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)	{
 		// notify application by setting global flag
 		application.m_adcComplete = true;
+	}
+
+	void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+	{
+		if(*application.index != '!'){
+			++application.index;
+			application.m_uart.receiveDMA(application.index, 1);
+		}
+		else{
+			//feeding done
+			application.m_process = true;
+			application.index = application.patternInput.begin();
+			application.m_uart << "Feeding done.\n";
+		}
 	}
 
 	void HAL_UARTEx_RxEventCallback(UART_HandleTypeDef *huart, uint16_t Size) {

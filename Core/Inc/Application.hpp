@@ -14,8 +14,8 @@
 
 class Application{
 public:
-	static Application& getInstance(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma,
-			ADC_HandleTypeDef* adc, TIM_HandleTypeDef* TIMhandle);
+	static Application& getInstance(DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
+															TIM_HandleTypeDef* TIMhandle, UART_HandleTypeDef*  uart);
 	Application(const Application&) = delete;	//delete copy constructor
 	void loop();
 	std::string_view m_printState() const;
@@ -38,6 +38,7 @@ public:
 	void CLIfreq(CommandPayload& payload);
 	void CLIvol(CommandPayload& payload);
 	void CLIchange(CommandPayload& payload);
+	void CLIfeed();
 
 	enum class State{
 		init,
@@ -47,17 +48,17 @@ public:
 	};
 
 private:
-	Application(UART_HandleTypeDef*  uart, DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
-						 TIM_HandleTypeDef* TIMhandle);
+	Application(DMA_HandleTypeDef* dma, ADC_HandleTypeDef* adc,
+						 TIM_HandleTypeDef* TIMhandle, UART_HandleTypeDef*  uart);
 	Pinout m_pinout;
-	Uart m_uart;
 	Adc m_adc;
 	MD10C m_motor;
 	State m_currentState {State::init};
 	BreathingPattern m_breathingPattern {};
+	BreathingPattern m_inputPattern {};
 	int m_breathCounter {0};
 	bool m_paramChange {false};
-	float m_requestedFreq {6};
+	float m_requestedFreq {0};
 	float m_step {1.0f};
 	int m_endTime {0};
 	int m_requestedVolume {0};
@@ -73,4 +74,10 @@ public:
 	volatile bool m_uartComplete {false};
 	volatile bool m_regTimer {false};
 	volatile uint16_t m_uartSize {0};
+	volatile bool m_process {false};
+	Uart m_uart;
+	std::array<uint8_t, 7007> patternInput {};
+	uint8_t* index {patternInput.begin()};
+	bool m_inpAvail {false};
+	bool m_diffPattern {false};
 };

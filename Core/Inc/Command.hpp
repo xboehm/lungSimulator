@@ -87,3 +87,11 @@ private:
 	Application& m_app;
 	CommandPayload& m_payload;
 };
+
+class CmdFeed : public Command{
+public:
+	CmdFeed(Application& app);
+	void execute() override;
+private:
+	Application& m_app;
+};

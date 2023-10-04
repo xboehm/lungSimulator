@@ -65,3 +65,10 @@ CmdChange::CmdChange(Application& app, CommandPayload& payload)
 void CmdChange::execute() {
 	m_app.CLIchange(m_payload);
 }
+
+CmdFeed::CmdFeed(Application& app)
+	: Command("feed", "Feed the simulator with new pattern data"), m_app(app) {}
+
+void CmdFeed::execute() {
+	m_app.CLIfeed();
+}
