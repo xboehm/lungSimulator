@@ -184,20 +184,19 @@ void Application::loop() {
 
 				//converting char input from serial to floats and storing it in m_inputPattern
 				if(m_process){
-//					while(!m_regTimer){
 						m_inputPattern.data[ii++] = static_cast<float>(std::atof(reinterpret_cast<char*>(index)));
 						index = std::find(index, patternInput.end(), ';');
+						//end of processing reached
 						if(index == patternInput.end()){
 							m_process = false;
 							m_inputPattern.length = ii;
+							patternInput.fill('\0');
 							m_inpAvail = true;
 							cli.listen();
-//							break;
 						}
 						else{
 							++index;
 						}
-//					}
 				}
 
 				//new command?
@@ -209,7 +208,6 @@ void Application::loop() {
 				break;
 
 			case(State::stop):
-//				m_motor.stop();
 				//wait for system being cleared
 				while(1) {
 					m_pinout.m_onboardLed.toggle();
