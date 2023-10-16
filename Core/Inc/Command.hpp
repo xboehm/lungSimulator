@@ -39,10 +39,11 @@ private:
 
 class CmdSelect : public Command {
 public:
-	CmdSelect(Application& app);
+	CmdSelect(Application& app, CommandPayload& payload);
 	  void execute() override;
 	private:
 	  Application& m_app;
+	  CommandPayload& m_payload;
 };
 
 class CmdPause : public Command {

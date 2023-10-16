@@ -24,11 +24,11 @@ void CmdBreathe::execute()  {
     m_app.CLIbreathe();
 }
 
-CmdSelect::CmdSelect(Application& app)
-	: Command("select", "Select a breathing pattern to run"), m_app(app)  {}
+CmdSelect::CmdSelect(Application& app, CommandPayload& payload)
+	: Command("select", "Select a breathing pattern to run"), m_app(app), m_payload(payload)  {}
 
 void CmdSelect::execute()  {
-    m_app.CLIselect();
+    m_app.CLIselect(m_payload);
 }
 
 CmdPause::CmdPause(Application& app)

@@ -33,7 +33,7 @@ void Application::loop() {
 	commands.at(1)  = &cmdblink;
 	CmdBreathe cmdbreathe{application};
 	commands.at(2) = &cmdbreathe;
-	CmdSelect cmdselect{application};
+	CmdSelect cmdselect{application, cli.getPayload()};
 	commands.at(3) = &cmdselect;
 	CmdPause cmdpause{application};
 	commands.at(4) = &cmdpause;
@@ -375,7 +375,7 @@ void Application::CLIbreathe() {
 	m_currentState = State::breathe;
 }
 
-void Application::CLIselect() {
+void Application::CLIselect(CommandPayload& payload) {
 	m_uart << "The following patterns are available:\n";
 	m_uart << "0: Abort\n";
 	if(m_inpAvail){
@@ -383,51 +383,27 @@ void Application::CLIselect() {
 	}
 	m_uart << "2: Sine6V\n";
 
-
-	uint8_t buffer[5] {};
-	bool found {false};
-	m_uartComplete = false;
-	while(!found) {
-		m_uart.receiveToIdleDMA(buffer, std::size(buffer));
-		while(!m_uartComplete) {
-			HAL_Delay(5);
-			//no optimization!
-		}
-//		HAL_Delay(5);
-		m_uartComplete = false;
-		switch(buffer[0]) {
-			case '0':
-				m_uart << "Aborted\n";
-				return;
-			case '1':
-				if(m_inpAvail){
+	switch(payload[0]) {
+		case '0':
+			m_uart << "Aborted\n";
+			return;
+		case '1':
+			if(m_inpAvail){
 //					m_copyPattern(std::span(m_inputPattern.data.begin(), m_inputPattern.length));
-					m_diffPattern = true;
-					found = true;
-				}
-				else{
-					m_uart << "Please enter a valid number\n";
-					for(std::size_t i{0}; i < std::size(buffer); ++i) {
-						buffer[i] = '\0';
-					}
-				}
-				break;
-			case '2':
-				m_copyPattern(pattern::sineSixV);
-				found = true;
-				return;
-			default:
+				m_diffPattern = true;
+			}
+			else{
 				m_uart << "Please enter a valid number\n";
-				for(std::size_t i{0}; i < std::size(buffer); ++i) {
-					buffer[i] = '\0';
-				}
-				break;
-		}
+			}
+			break;
+		case '2':
+			m_copyPattern(pattern::sineSixV);
+			return;
+		default:
+			m_uart << "Please enter a valid number\n";
+			break;
 	}
-//	m_breathCounter = 0;
-//	m_step = m_requestedFreq / m_breathingPattern.frequency;
-//	m_endTime = 60000 / m_requestedFreq;
-	m_uart << "Successfully switched to  number " << static_cast<char>(buffer[0]) << " with next breath.\n";
+	m_uart << "Successfully switched to  number " << static_cast<char>(payload[0]) << " with next breath.\n";
 }
 
 void Application::CLIpause() {

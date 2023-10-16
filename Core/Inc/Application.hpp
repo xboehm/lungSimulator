@@ -33,7 +33,7 @@ public:
 	void CLIversion();
 	void CLIblink();
 	void CLIbreathe();
-	void CLIselect();
+	void CLIselect(CommandPayload& payload);
 	void CLIpause();
 	void CLIfreq(CommandPayload& payload);
 	void CLIvol(CommandPayload& payload);
