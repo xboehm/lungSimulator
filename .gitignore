@@ -1,5 +1,3 @@
 /Debug/
-*.launch
 *.log
 /Release/
-nucleo.cfg
